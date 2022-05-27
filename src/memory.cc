@@ -1,50 +1,56 @@
 #include "memory.hh"
 
-void Busline::map_io_to_virtual(IORegister* reg, uint16_t addr) {
-    // Insert address into the hash map
-    io_map[addr] = reg;
-}
+/* -------------------------------------------------------- */
+/*                                                          */
+/*                         CPU BUS                          */
+/*                                                          */
+/* -------------------------------------------------------- */
 
-/* Address calculation to conserve memory */
+cpu_bus::cpu_bus() {
 
-// To avoid polluting the hash maps with a hundred different addresses that are mapped to the same
-//      io register, this can be used to translate all io register mappings so that a single address
-//      represents each io register to conserve space.
-inline uint16_t remap_addr(uint16_t addr) {
-    return (addr < 0x4000) ? 0x2000 | (addr % 0x8) : addr;
-}
+    // Initialize component list
+    m_cpu = std::shared_ptr<Ricoh2A03>(new Ricoh2A03(this));
+    m_ppu = std::shared_ptr<Ricoh2C02>(new Ricoh2C02(this));
 
-/* Read and write functions */
-
-void Busline::write(uint16_t addr, uint8_t value) {
-    // RAM access
-    /**/ if (addr < 0x2000) {
-        ram[value & 0x7FF] = value;
-    }
-    // IO register access
-    else if (addr < 0x4018) {
-        io_map[remap_addr(addr)]->write(value);
-    }
-    // Cartridge access
-}
-
-uint8_t Busline::read(uint16_t addr) {
-    // RAM access
-    /**/ if (addr < 0x2000) {
-        return ram[addr & 0x7FF];
-    }
-    // IO register access
-    else if (addr < 0x4018) {
-        return io_map[remap_addr(addr)]->read();
-    }
-    // Cartridge access
-    else return 0x00;
-}
-
-/* Synchronize all components on the bus */
-
-void Busline::step(uint8_t cycles) {
-
-
+    // Initialize the hash map for mapped IO
 
 }
+
+/* Read from and write to the bus ------------------------- */
+
+void cpu_bus::WB(uint16_t addr, uint8_t value) {
+
+}
+
+uint8_t cpu_bus::RB(uint16_t addr) {
+    return 0x00;
+}
+
+/* External signals --------------------------------------- */
+
+void cpu_bus::irq() {
+    m_cpu->irq();
+}
+
+void cpu_bus::nmi() {
+    m_cpu->nmi();
+}
+
+void cpu_bus::rst() {
+    m_cpu->rst();
+}
+
+/* Step all components on the bus ------------------------- */
+
+void cpu_bus::step(uint8_t cycles) {
+    // TODO
+}
+
+
+/* -------------------------------------------------------- */
+/*                                                          */
+/*                         PPU BUS                          */
+/*                                                          */
+/* -------------------------------------------------------- */
+
+
