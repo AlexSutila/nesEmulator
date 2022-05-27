@@ -9,8 +9,8 @@
 cpu_bus::cpu_bus() {
 
     // Initialize component list
-    m_cpu = std::shared_ptr<Ricoh2A03>(new Ricoh2A03(this));
-    m_ppu = std::shared_ptr<Ricoh2C02>(new Ricoh2C02(this));
+    m_cpu = std::make_shared<Ricoh2A03>(this);
+    m_ppu = std::make_shared<Ricoh2C02>(this);
 
     // Initialize the hash map for mapped IO
 

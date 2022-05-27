@@ -11,7 +11,7 @@ struct Ricoh2A03 {
 private:
 
     // A pointer to the CPU busline
-    std::shared_ptr<cpu_bus> m_bus;
+    cpu_bus* m_bus;
 
     // CPU Registers - 8 bits
     uint8_t m_reg_a, m_reg_x, m_reg_y, m_reg_s;

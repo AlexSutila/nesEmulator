@@ -10,7 +10,7 @@ struct Ricoh2C02 {
 private:
 
     // A pointer to the CPU busline
-    std::shared_ptr<cpu_bus> m_cpu_bus;
+    cpu_bus* m_cpu_bus;
 
 public:
 
