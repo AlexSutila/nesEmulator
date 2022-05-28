@@ -149,7 +149,7 @@ void ppu_bus::WB(uint16_t addr, uint8_t value) {
 
     // Palettes - Address Range 0x3F00 - 0x4000
     else if (addr >= 0x3F00 && addr <= 0x3FFF) {
-        m_palettes[mirror_palettes(addr - 0x3F00)] = value;
+        m_palettes[mirror_palettes(addr) - 0x3F00] = value;
     }
 
 }
