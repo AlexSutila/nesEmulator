@@ -115,11 +115,6 @@ void cpu_bus::step(uint8_t cycles) {
 
 ppu_bus::ppu_bus() {
 
-    // Allocate space for all memory blocks on the bus
-    m_patterns   = std::make_unique<uint8_t[]>(0x2000);
-    m_nametables = std::make_unique<uint8_t[]>(0x1000);
-    m_palettes   = std::make_unique<uint8_t[]>(0x0020);
-
 }
 
 /* Read from and write to the bus ------------------------- */
@@ -134,23 +129,8 @@ void ppu_bus::WB(uint16_t addr, uint8_t value) {
 
     using namespace AddressMirrors::PpuBus;
 
-    // Mirrors is just what the docs call the upper 0x4000 - 0x10000
+    // Reduce address to lower quarter of address range
     addr = mirror_mirrors(addr);
-
-    // Patterns - Address Range 0x0000 - 0x2000
-    /**/ if (addr >= 0x0000 && addr <= 0x1FFF) {
-        m_patterns[addr] = value;
-    }
-
-    // Name Tables - Address Range 0x2000 - 0x3F00
-    else if (addr >= 0x2000 && addr <= 0x3EFF) {
-        m_nametables[mirror_nametables(addr) - 0x2000] = value;
-    }
-
-    // Palettes - Address Range 0x3F00 - 0x4000
-    else if (addr >= 0x3F00 && addr <= 0x3FFF) {
-        m_palettes[mirror_palettes(addr) - 0x3F00] = value;
-    }
 
 }
 
@@ -158,23 +138,8 @@ uint8_t ppu_bus::RB(uint16_t addr) {
 
     using namespace AddressMirrors::PpuBus;
 
-    // Mirrors is just what the docs call the upper 0x4000 - 0x10000
+    // Reduce address to lower quarter of address range
     addr = mirror_mirrors(addr);
-
-    // Patterns - Address Range 0x0000 - 0x2000
-    /**/ if (addr >= 0x0000 && addr <= 0x1FFF) {
-        return m_patterns[addr];
-    }
-
-    // Name Tables - Address Range 0x2000 - 0x3F00
-    else if (addr >= 0x2000 && addr <= 0x3EFF) {
-        return m_nametables[mirror_nametables(addr) - 0x2000];
-    }
-
-    // Palettes - Address Range 0x3F00 - 0x4000
-    else if (addr >= 0x3F00 && addr <= 0x3FFF) {
-        return m_palettes[mirror_palettes(addr) - 0x3F00];
-    }
 
     return 0x00;
 }
