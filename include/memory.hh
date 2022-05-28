@@ -13,6 +13,9 @@ struct cpu_bus {
 
 private:
 
+    // Pointer to RAM memory block
+    std::unique_ptr<uint8_t[]> m_ram;
+
     // List of pointers to connected components - will expand in time
     std::shared_ptr<Ricoh2A03> m_cpu;
     std::shared_ptr<Ricoh2C02> m_ppu;
@@ -49,7 +52,10 @@ struct ppu_bus {
 
 private:
 
-
+    // Pointers to all memory blocks on the bus
+    std::unique_ptr<uint8_t[]> m_patterns;
+    std::unique_ptr<uint8_t[]> m_nametables;
+    std::unique_ptr<uint8_t[]> m_palettes;
 
 public:
 
