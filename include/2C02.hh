@@ -24,4 +24,8 @@ public:
 
     }
 
+    // Memory access to the cpu buslines
+    void WB(uint16_t addr, uint8_t value);
+    uint8_t RB(uint16_t addr);
+
 };
