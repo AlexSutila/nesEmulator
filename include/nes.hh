@@ -1,4 +1,5 @@
 #pragma once
+#include "cart/cart.hh"
 #include "memory.hh"
 
 struct nes {
@@ -11,8 +12,13 @@ private:
     //      the constructor of this object.
     cpu_bus m_bus;
 
+    // The cartridge, to be loaded with the contents of a rom file, given the 
+    //      path to the file
+    Cart m_cart;
+
 public:
 
+    bool load_cart(const std::string& rom_path);
     void run();
 
 };
