@@ -53,6 +53,10 @@ private:
 
 public:
 
+    ppu_bus();
 
+    // Memory access by PPU
+    void WB(uint16_t addr, uint8_t value);
+    uint8_t RB(uint16_t addr);
 
 };
