@@ -7,7 +7,12 @@
 //      be called within load_rom
 bool Cart::init_mapper(int mapper_number) {
 
-    // TODO
+    switch (mapper_number) {
+
+        // Factory design pattern - balls are sore yah
+        case 0: m_mapper = std::make_unique<Mapper_000>(this); return true;
+
+    }
     
     return false;
 }
@@ -41,6 +46,7 @@ bool Cart::load_rom(const std::string& rom_path) {
     uint8_t mapper_number = (m_cart_header.mapper_1 & 0xF0) & ((m_cart_header.mapper_0 & 0x0F) >> 4);
     if (!init_mapper(mapper_number)) {
         std::cout << "Unimplemented mapper type" << std::endl;
+        return false;
     } 
 
     rom_file.close();
@@ -50,21 +56,32 @@ bool Cart::load_rom(const std::string& rom_path) {
 
 /* Memory access by CPU ----------------------------------- */
 
-void cpu_WB(uint16_t addr, uint8_t value) {
-
+void Cart::cpu_WB(uint16_t addr, uint8_t value) {
+    m_mapper->cpu_WB(addr, value);
 }
 
-uint8_t cpu_RB(uint16_t addr) {
-    return 0x00;
+uint8_t Cart::cpu_RB(uint16_t addr) {
+    return m_mapper->cpu_RB(addr);
 }
 
 
 /* Memory access by PPU ----------------------------------- */
 
-void ppu_WB(uint16_t addr, uint8_t value) {
-
+void Cart::ppu_WB(uint16_t addr, uint8_t value) {
+    m_mapper->ppu_WB(addr, value);
 }
 
-uint8_t ppu_RB(uint16_t addr) {
-    return 0x00;
+uint8_t Cart::ppu_RB(uint16_t addr) {
+    return m_mapper->ppu_RB(addr);
+}
+
+
+/* Getters ------------------------------------------------ */
+
+uint8_t* Cart::get_PRG() {
+    return m_prg_rom.data();
+}
+
+uint8_t* Cart::get_CHR() {
+    return m_chr_rom.data();
 }

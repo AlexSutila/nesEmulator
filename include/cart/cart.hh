@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+class Mapper;
+
 struct Cart {
 
 private:
@@ -58,5 +60,9 @@ public:
     // Memory access by PPU
     void ppu_WB(uint16_t addr, uint8_t value);
     uint8_t ppu_RB(uint16_t addr);
+
+    // To allow mapper to access the memory read from the ROM
+    uint8_t* get_PRG();
+    uint8_t* get_CHR();
 
 };
