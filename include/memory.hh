@@ -3,6 +3,7 @@
 #include <memory>
 #include "2A03.hh"
 #include "2C02.hh"
+#include "cart/cart.hh"
 
 struct Ricoh2A03;
 struct Ricoh2C02;
@@ -20,6 +21,9 @@ private:
     std::shared_ptr<Ricoh2A03> m_cpu;
     std::shared_ptr<Ricoh2C02> m_ppu;
 
+    // A pointer to the cartridge as the CPU will need to access PRGROM
+    Cart* m_cart;
+
     // Hash maps to map memory access functions for IO registers to virtual addresses
     std::unordered_map<uint16_t, void(cpu_bus::*)(uint8_t value)> m_io_writes;
     std::unordered_map<uint16_t, uint8_t(cpu_bus::*)()> m_io_reads;
@@ -30,6 +34,7 @@ private:
 public:
 
     cpu_bus();
+    void load_cart(Cart* cart_ptr);
 
     // Memory access by CPU
     void WB(uint16_t addr, uint8_t value);
@@ -52,11 +57,13 @@ struct ppu_bus {
 
 private:
 
-    
+    // A pointer to the cartridge as the PPU will need to read CHRROM
+    Cart* m_cart;
 
 public:
 
     ppu_bus();
+    void load_cart(Cart* cart_ptr);
 
     // Memory access by PPU
     void WB(uint16_t addr, uint8_t value);

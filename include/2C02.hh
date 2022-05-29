@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <cart/cart.hh>
 #include "memory.hh"
 
 struct cpu_bus;
@@ -23,6 +24,11 @@ public:
         m_ppu_bus = std::make_unique<ppu_bus>();
 
     }
+
+    // Part of the PPU bus reads from the cartridge, so a function is needed
+    //      to connect the PPU bus to the cartridge as well. This is called
+    //      from cpu_bus::load_cart
+    void load_cart(Cart* cart_ptr);
 
     // Memory access to the cpu buslines
     void WB(uint16_t addr, uint8_t value);

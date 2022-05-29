@@ -3,6 +3,16 @@
 #include <iterator>
 #include <fstream>
 
+// Initialize the mapper pointer with a pointer to the cartridges respective mapper. Will
+//      be called within load_rom
+bool Cart::init_mapper(int mapper_number) {
+
+    // TODO
+    
+    return false;
+}
+
+// Initialize the memory blocks and fill them with the respective memory from the ROM file
 bool Cart::load_rom(const std::string& rom_path) {
 
     // Open rom and read the cartridge header
@@ -26,6 +36,12 @@ bool Cart::load_rom(const std::string& rom_path) {
     // Copy the rom to the memory blocks
     rom_file.read((char*)m_prg_rom.data(), m_prg_rom.size() * sizeof(uint8_t));
     rom_file.read((char*)m_chr_rom.data(), m_chr_rom.size() * sizeof(uint8_t));
+
+    // Initialize the mapper pointer
+    uint8_t mapper_number = (m_cart_header.mapper_1 & 0xF0) & ((m_cart_header.mapper_0 & 0x0F) >> 4);
+    if (!init_mapper(mapper_number)) {
+        std::cout << "Unimplemented mapper type" << std::endl;
+    } 
 
     rom_file.close();
     return true;

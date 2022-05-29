@@ -1,5 +1,9 @@
 #include "2C02.hh"
 
+void Ricoh2C02::load_cart(Cart* cart_ptr) {
+    m_ppu_bus->load_cart(cart_ptr);
+}
+
 /* Memory access to the cpu buslines */
 
 void Ricoh2C02::WB(uint16_t addr, uint8_t value) {

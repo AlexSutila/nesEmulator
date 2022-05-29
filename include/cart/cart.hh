@@ -1,6 +1,7 @@
 #pragma once
-
+#include "cart/mapper.hh"
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -39,6 +40,11 @@ private:
     // Vectors containing the contents of program and character roms
     std::vector<uint8_t> m_prg_rom;
     std::vector<uint8_t> m_chr_rom;
+
+    // A pointer to the cartridge's mapper and function to initialize said
+    //      mapper pointer given the respective mapper number
+    bool init_mapper(int mapper_number);
+    std::unique_ptr<Mapper> m_mapper;
 
 public:
 

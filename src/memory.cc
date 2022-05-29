@@ -20,6 +20,16 @@ cpu_bus::cpu_bus() {
 
 }
 
+void cpu_bus::load_cart(Cart* cart_ptr) {
+    
+    // Connect cartridge to this bus
+    m_cart = cart_ptr;
+
+    // Call this PPU function to connect to PPU bus
+    m_ppu->load_cart(cart_ptr);
+
+}
+
 /* Read from and write to the bus ------------------------- */
 
 void cpu_bus::WB(uint16_t addr, uint8_t value) {
@@ -115,6 +125,10 @@ void cpu_bus::step(uint8_t cycles) {
 
 ppu_bus::ppu_bus() {
 
+}
+
+void ppu_bus::load_cart(Cart* cart_ptr) {
+    m_cart = cart_ptr;
 }
 
 /* Read from and write to the bus ------------------------- */
