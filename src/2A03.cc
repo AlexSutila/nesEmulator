@@ -1,6 +1,12 @@
 #include "2A03.hh"
 
-/* Memory access to the cpu buslines */
+/* Busline connections ------------------------------------ */
+
+void Ricoh2A03::connect_bus(cpu_bus* cpu_bus_ptr) {
+    m_bus = cpu_bus_ptr;
+}
+
+/* Memory access to the cpu buslines ---------------------- */
 
 void Ricoh2A03::WB(uint16_t addr, uint8_t value) {
     m_bus->WB(addr, value);

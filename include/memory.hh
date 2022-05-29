@@ -18,8 +18,8 @@ private:
     std::unique_ptr<uint8_t[]> m_ram;
 
     // List of pointers to connected components - will expand in time
-    std::shared_ptr<Ricoh2A03> m_cpu;
-    std::shared_ptr<Ricoh2C02> m_ppu;
+    Ricoh2A03* m_cpu;
+    Ricoh2C02* m_ppu;
 
     // A pointer to the cartridge as the CPU will need to access PRGROM
     Cart* m_cart;
@@ -34,7 +34,11 @@ private:
 public:
 
     cpu_bus();
-    void load_cart(Cart* cart_ptr);
+
+    // Connect components
+    void connect_cpu(Ricoh2A03* cpu_ptr);
+    void connect_ppu(Ricoh2C02* ppu_ptr);
+    void connect_cart(Cart* cart_ptr);
 
     // Memory access by CPU
     void WB(uint16_t addr, uint8_t value);
@@ -63,7 +67,9 @@ private:
 public:
 
     ppu_bus();
-    void load_cart(Cart* cart_ptr);
+
+    // Functions to connect components
+    void connect_cart(Cart* cart_ptr);
 
     // Memory access by PPU
     void WB(uint16_t addr, uint8_t value);

@@ -12,22 +12,22 @@ cpu_bus::cpu_bus() {
     // Allocate memory for CPU ram
     m_ram = std::make_unique<uint8_t[]>(0x0800);
 
-    // Initialize component list
-    m_cpu = std::make_shared<Ricoh2A03>(this);
-    m_ppu = std::make_shared<Ricoh2C02>(this);
-
     // Initialize the hash map for mapped IO
 
 }
 
-void cpu_bus::load_cart(Cart* cart_ptr) {
-    
-    // Connect cartridge to this bus
+/* Connect components ------------------------------------- */
+
+void cpu_bus::connect_cpu(Ricoh2A03* cpu_ptr) {
+    m_cpu = cpu_ptr;
+}
+
+void cpu_bus::connect_ppu(Ricoh2C02* ppu_ptr) {
+    m_ppu = ppu_ptr;
+}
+
+void cpu_bus::connect_cart(Cart* cart_ptr) {
     m_cart = cart_ptr;
-
-    // Call this PPU function to connect to PPU bus
-    m_ppu->load_cart(cart_ptr);
-
 }
 
 /* Read from and write to the bus ------------------------- */
@@ -127,7 +127,9 @@ ppu_bus::ppu_bus() {
 
 }
 
-void ppu_bus::load_cart(Cart* cart_ptr) {
+/* Connect components ------------------------------------- */
+
+void ppu_bus::connect_cart(Cart* cart_ptr) {
     m_cart = cart_ptr;
 }
 

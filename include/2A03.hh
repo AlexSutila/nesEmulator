@@ -39,7 +39,8 @@ private:
 
 public:
 
-    Ricoh2A03(cpu_bus* bus_ptr) : m_bus(bus_ptr) {}
+    // Connect components
+    void connect_bus(cpu_bus* cpu_bus_ptr);
 
     // External signals
     void irq(); // Maskable interrupt signal
