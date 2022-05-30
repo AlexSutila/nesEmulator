@@ -12,9 +12,9 @@ bool Cart::init_mapper(int mapper_number) {
         // Factory design pattern - balls are sore yah
         case 0: m_mapper = std::make_unique<Mapper_000>(
             this,
-            m_cart_header.size_prg_rom,
-            m_cart_header.size_chr_rom,
-            m_cart_header.size_prg_ram); 
+            m_cart_header.size_prg_rom * 0x4000,
+            m_cart_header.size_chr_rom * 0x2000,
+            m_cart_header.size_prg_ram * 0x2000); 
             return true;
 
     }
