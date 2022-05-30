@@ -10,7 +10,12 @@ bool Cart::init_mapper(int mapper_number) {
     switch (mapper_number) {
 
         // Factory design pattern - balls are sore yah
-        case 0: m_mapper = std::make_unique<Mapper_000>(this); return true;
+        case 0: m_mapper = std::make_unique<Mapper_000>(
+            this,
+            m_cart_header.size_prg_rom,
+            m_cart_header.size_chr_rom,
+            m_cart_header.size_prg_ram); 
+            return true;
 
     }
     
@@ -37,6 +42,7 @@ bool Cart::load_rom(const std::string& rom_path) {
     // Resize the vectors based on the specifications in the header
     m_prg_rom.resize(0x4000 * (int)m_cart_header.size_prg_rom * sizeof(uint8_t));
     m_chr_rom.resize(0x2000 * (int)m_cart_header.size_chr_rom * sizeof(uint8_t));
+    m_prg_ram.resize(0x2000 * (int)m_cart_header.size_prg_ram * sizeof(uint8_t));
 
     // Copy the rom to the memory blocks
     rom_file.read((char*)m_prg_rom.data(), m_prg_rom.size() * sizeof(uint8_t));
@@ -78,10 +84,14 @@ uint8_t Cart::ppu_RB(uint16_t addr) {
 
 /* Getters ------------------------------------------------ */
 
-uint8_t* Cart::get_PRG() {
+uint8_t* Cart::get_PRG_ROM() {
     return m_prg_rom.data();
 }
 
-uint8_t* Cart::get_CHR() {
+uint8_t* Cart::get_CHR_ROM() {
     return m_chr_rom.data();
+}
+
+uint8_t* Cart::get_PRG_RAM() {
+    return m_prg_ram.data();
 }

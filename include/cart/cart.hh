@@ -39,9 +39,11 @@ private:
         uint8_t padding[5];
     } m_cart_header;
 
-    // Vectors containing the contents of program and character roms
+    // Vectors containing the contents of program and character roms as well as
+    //      program ram, each will be resized based on cartridge specs
     std::vector<uint8_t> m_prg_rom;
     std::vector<uint8_t> m_chr_rom;
+    std::vector<uint8_t> m_prg_ram;
 
     // A pointer to the cartridge's mapper and function to initialize said
     //      mapper pointer given the respective mapper number
@@ -62,7 +64,8 @@ public:
     uint8_t ppu_RB(uint16_t addr);
 
     // To allow mapper to access the memory read from the ROM
-    uint8_t* get_PRG();
-    uint8_t* get_CHR();
+    uint8_t* get_PRG_ROM();
+    uint8_t* get_CHR_ROM();
+    uint8_t* get_PRG_RAM();
 
 };

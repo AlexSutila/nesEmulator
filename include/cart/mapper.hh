@@ -31,11 +31,16 @@ class Mapper_000 : public Mapper {
 
 private:
 
+    uint8_t m_size_prg_rom, m_size_chr_rom, m_size_prg_ram;
     Cart* m_cart;
 
 public:
 
-    Mapper_000(Cart* cart_ptr) : m_cart(cart_ptr) {}    
+    Mapper_000(Cart* cart_ptr, uint8_t sz_prg_rom, uint8_t sz_chr_rom, uint8_t sz_prg_ram) : 
+        m_cart(cart_ptr), 
+        m_size_prg_rom(sz_prg_rom),
+        m_size_chr_rom(sz_chr_rom),
+        m_size_prg_ram(sz_prg_ram) {}
 
     // Mapper access by CPU
     void cpu_WB(uint16_t addr, uint8_t value) override;
