@@ -87,7 +87,7 @@ uint8_t Mapper_000::cpu_RB(uint16_t addr) {
 void Mapper_000::ppu_WB(uint16_t addr, uint8_t value) {
 
     // CHR ROM
-    if (addr >= 0x0000 && addr <= 0x7FFF) {
+    if (addr >= 0x0000 && addr <= 0x1FFF) {
 
         // An assert really isn't needed here so
         m_cart->get_CHR_ROM()[addr] = value;
@@ -99,7 +99,7 @@ void Mapper_000::ppu_WB(uint16_t addr, uint8_t value) {
 uint8_t Mapper_000::ppu_RB(uint16_t addr) {
 
     // CHR ROM
-    if (addr >= 0x0000 && addr <= 0x7FFF) {
+    if (addr >= 0x0000 && addr <= 0x1FFF) {
 
         // An assert really isn't needed here so
         return m_cart->get_CHR_ROM()[addr];
