@@ -56,9 +56,9 @@ void cpu_bus::WB(uint16_t addr, uint8_t value) {
         }
     } 
     
-    // Cart - need to read more about this region
+    // Cart - Address Range 0x4020 - 0xFFFF
     else if (addr >= 0x4020 && addr <= 0xFFFF) {
-        // TODO:
+        m_cart->cpu_WB(addr, value);
     }
 
 }
@@ -88,9 +88,9 @@ uint8_t cpu_bus::RB(uint16_t addr) {
 
     } 
     
-    // Cart - need to read more about this region
+    // Cart - Address Range 0x4020 - 0xFFFF
     else if (addr >= 0x4020 && addr <= 0xFFFF) {
-        // TODO:
+        return m_cart->cpu_RB(addr);
     }
 
     return 0x00;
@@ -148,6 +148,13 @@ void ppu_bus::WB(uint16_t addr, uint8_t value) {
     // Reduce address to lower quarter of address range
     addr = mirror_mirrors(addr);
 
+    // Pattern Tables - Address Range 0x0000 - 0x2000
+    /**/ if (addr >= 0x0000 && addr <= 0x1FFF) {
+        m_cart->ppu_WB(addr, value);
+    }
+
+    // TODO: Rest of PPU memory map
+
 }
 
 uint8_t ppu_bus::RB(uint16_t addr) {
@@ -157,5 +164,11 @@ uint8_t ppu_bus::RB(uint16_t addr) {
     // Reduce address to lower quarter of address range
     addr = mirror_mirrors(addr);
 
+    // Pattern Tables - Address Range 0x0000 - 0x2000
+    /**/ if (addr >= 0x0000 && addr <= 0x1FFF) {
+        return m_cart->ppu_RB(addr);
+    }
+
+    // TODO: Rest of PPU memory map
     return 0x00;
 }
