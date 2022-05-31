@@ -53,7 +53,7 @@ private:
     };
 
     // A template for instructions, see 2A03.cc for details
-    template<AddrModes, Operations> void ins();
+    template<AddrModes, Operations> uint8_t ins();
 
 public:
 

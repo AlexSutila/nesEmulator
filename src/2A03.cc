@@ -43,45 +43,80 @@ void Ricoh2A03::rst() {
 // ---------------------------------------------------------------
 //      a_m -> addressing mode - from Ricoh2A03 member enum
 //      op  -> operation       - from Ricoh2A03 member enum
+//  Returns -> uint8_t         - any additional cycles used
 template<Ricoh2A03::AddrModes a_m, Ricoh2A03::Operations op>
-void Ricoh2A03::ins() {
+uint8_t Ricoh2A03::ins() {
+
+    // A boolean flag to determine if an additional cycle
+    //      will be added only in some instructions
+    bool addrmode_extra_cycle = false;
+
+    // Temporary variables to ease instruction execution
+    uint8_t t8 = 0, extra_cycles = 0;
+    uint16_t addr = 0x0000;
 
     // Do addressing mode
     /**/ if constexpr (a_m == IMP) {
-
+        t8 = m_reg_a;
     }
     else if constexpr (a_m == IMM) {
-
+        addr = m_reg_pc++;
     }
     else if constexpr (a_m == ZP0) {
-
+        addr = RB(m_reg_pc++) & 0x00FF;
     }
     else if constexpr (a_m == ZPX) {
-
+        addr = (RB(m_reg_pc++) + m_reg_x) & 0x00FF;
     }
     else if constexpr (a_m == ZPY) {
-
+        addr = (RB(m_reg_pc++) + m_reg_y) & 0x00FF;
     }
     else if constexpr (a_m == REL) {
-
+        addr = RB(m_reg_pc++);
+        if (addr & 0x80) addr |= 0xFF00;
     }
     else if constexpr (a_m == ABS) {
-
+        addr  = RB(m_reg_pc++);
+        addr |= RB(m_reg_pc++) << 8;
     }
     else if constexpr (a_m == ABX) {
-
+        uint8_t lo = RB(m_reg_pc++);
+        uint8_t hi = RB(m_reg_pc++);
+        addr = ((hi << 8) | lo) + m_reg_x;
+        // Specific instructions will check addrmode_extra_cycle to see if it needs the
+        //      additional cycle to handle the page cross, other instructions just do
+        //      the page cross regardless if its needed or not.
+        if (addr & 0xFF00 != hi << 8) 
+            addrmode_extra_cycle = true;
     }
     else if constexpr (a_m == ABY) {
-
+        uint8_t lo = RB(m_reg_pc++);
+        uint8_t hi = RB(m_reg_pc++);
+        addr = ((hi << 8) | lo) + m_reg_y;
+        // Same rational as ABX
+        if (addr & 0xFF00 != hi << 8)
+            addrmode_extra_cycle = true;
     }
     else if constexpr (a_m == IND) {
-
+        uint16_t rd_addr = RB(m_reg_pc++);
+        rd_addr |=  (RB(m_reg_pc++) << 8);
+        addr = (rd_addr & 0x00FF) == 0xFF ?
+            (RB(rd_addr & 0xFF00) << 8) | RB(rd_addr): // Hardware bug on page boundaries
+            (RB(rd_addr + 0x0001) << 8) | RB(rd_addr); // Regular behavior
     }
     else if constexpr (a_m == IZX) {
-
+        uint16_t rd_addr = RB(m_reg_pc++);
+        addr  = RB((uint16_t)(rd_addr + (uint16_t)m_reg_x    ) & 0x00FF);
+        addr |= RB((uint16_t)(rd_addr + (uint16_t)m_reg_x + 1) & 0x00FF) << 8;
     }
     else if constexpr (a_m == IZY) {
-
+        uint16_t rd_addr = RB(m_reg_pc++);
+        uint8_t  lo = RB( rd_addr      & 0x00FF);
+        uint8_t  hi = RB((rd_addr + 1) & 0x00FF);
+        addr = ((hi << 8) | lo) + m_reg_y;
+        // Page change potential to add cycle like before
+        if ((addr & 0xFF00) != (hi << 8))
+            addrmode_extra_cycle = true;
     }
 
     // Do operation
@@ -253,12 +288,14 @@ void Ricoh2A03::ins() {
     else if constexpr (op == TYA) {
 
     }
+
+    return extra_cycles;
 }
 
 void Ricoh2A03::step() {
 
     // For conciseness
-    typedef void (Ricoh2A03::*instruction)();
+    typedef uint8_t (Ricoh2A03::*instruction)();
     using a = Ricoh2A03;
     
     // Lookup table of function pointers, indexed by opcode to get 
@@ -284,9 +321,6 @@ void Ricoh2A03::step() {
 		/* 0xF- */ &a::ins<REL,BEQ>, &a::ins<IZY,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,SBC>, &a::ins<ZPX,INC>, &a::ins<IMP,NOP>, &a::ins<IMP,SED>, &a::ins<ABY,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,SBC>, &a::ins<ABX,INC>, &a::ins<IMP,NOP>,
     };
 
-    // Read opcode, execute instruction
     uint8_t opcode = RB(m_reg_pc++);
     (this->*lookup[opcode])();
-
-    // TODO: Figure something out clock cycles
 }
