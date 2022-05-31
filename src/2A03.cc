@@ -360,11 +360,17 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == STA) {
 
+        WB(addr_abs, m_reg_a);
+
     }
     else if constexpr (op == STX) {
 
+        WB(addr_abs, m_reg_x);
+
     }
     else if constexpr (op == STY) {
+
+        WB(addr_abs, m_reg_y);
 
     }
     else if constexpr (op == TAX) {
