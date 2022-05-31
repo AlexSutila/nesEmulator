@@ -242,8 +242,15 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == JMP) {
 
+        m_reg_pc = addr_abs;
+
     }
     else if constexpr (op == JSR) {
+
+        --m_reg_pc;
+        WB(0x0100 + m_reg_s--, (m_reg_pc >> 8) & 0xFF);
+        WB(0x0100 + m_reg_s--,  m_reg_pc       & 0xFF);
+        m_reg_pc = addr_abs;
 
     }
     else if constexpr (op == LDA) {
