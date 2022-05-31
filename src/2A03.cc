@@ -34,6 +34,259 @@ void Ricoh2A03::rst() {
 
 /* Drives the emulation ----------------------------------- */
 
+// Will construct a function for a specific instruction given its
+//      base cycle count (do not include additional clock cycles),
+//      it's addressing mode, and it's operation.
+//      ...
+// Will be used to construct a jump table that is indexed by the 
+//      opcode for CPU instruction execution
+// ---------------------------------------------------------------
+//      a_m -> addressing mode - from Ricoh2A03 member enum
+//      op  -> operation       - from Ricoh2A03 member enum
+template<Ricoh2A03::AddrModes a_m, Ricoh2A03::Operations op>
+void Ricoh2A03::ins() {
+
+    // Do addressing mode
+    /**/ if constexpr (a_m == IMP) {
+
+    }
+    else if constexpr (a_m == IMM) {
+
+    }
+    else if constexpr (a_m == ZP0) {
+
+    }
+    else if constexpr (a_m == ZPX) {
+
+    }
+    else if constexpr (a_m == ZPY) {
+
+    }
+    else if constexpr (a_m == REL) {
+
+    }
+    else if constexpr (a_m == ABS) {
+
+    }
+    else if constexpr (a_m == ABX) {
+
+    }
+    else if constexpr (a_m == ABY) {
+
+    }
+    else if constexpr (a_m == IND) {
+
+    }
+    else if constexpr (a_m == IZX) {
+
+    }
+    else if constexpr (a_m == IZY) {
+
+    }
+
+    // Do operation
+    /**/ if constexpr (op == ADC) {
+
+    }
+    else if constexpr (op == AND) {
+
+    }
+    else if constexpr (op == ASL) {
+
+    }
+    else if constexpr (op == BCC) {
+
+    }
+    else if constexpr (op == BCS) {
+
+    }
+    else if constexpr (op == BEQ) {
+
+    }
+    else if constexpr (op == BIT) {
+
+    }
+    else if constexpr (op == BMI) {
+
+    }
+    else if constexpr (op == BNE) {
+
+    }
+    else if constexpr (op == BPL) {
+
+    }
+    else if constexpr (op == BRK) {
+
+    }
+    else if constexpr (op == BVC) {
+
+    }
+    else if constexpr (op == BVS) {
+
+    }
+    else if constexpr (op == CLC) {
+
+    }
+    else if constexpr (op == CLD) {
+
+    }
+    else if constexpr (op == CLI) {
+
+    }
+    else if constexpr (op == CLV) {
+
+    }
+    else if constexpr (op == CMP) {
+
+    }
+    else if constexpr (op == CPX) {
+
+    }
+    else if constexpr (op == CPY) {
+
+    }
+    else if constexpr (op == DEC) {
+
+    }
+    else if constexpr (op == DEX) {
+
+    }
+    else if constexpr (op == DEY) {
+
+    }
+    else if constexpr (op == EOR) {
+
+    }
+    else if constexpr (op == INC) {
+
+    }
+    else if constexpr (op == INX) {
+
+    }
+    else if constexpr (op == INY) {
+
+    }
+    else if constexpr (op == JMP) {
+
+    }
+    else if constexpr (op == JSR) {
+
+    }
+    else if constexpr (op == LDA) {
+
+    }
+    else if constexpr (op == LDX) {
+
+    }
+    else if constexpr (op == LDY) {
+
+    }
+    else if constexpr (op == LSR) {
+
+    }
+    else if constexpr (op == NOP) {
+
+    }
+    else if constexpr (op == ORA) {
+
+    }
+    else if constexpr (op == PHA) {
+
+    }
+    else if constexpr (op == PHP) {
+
+    }
+    else if constexpr (op == PLA) {
+
+    }
+    else if constexpr (op == PLP) {
+
+    }
+    else if constexpr (op == ROL) {
+
+    }
+    else if constexpr (op == ROR) {
+
+    }
+    else if constexpr (op == RTI) {
+
+    }
+    else if constexpr (op == RTS) {
+
+    }
+    else if constexpr (op == SBC) {
+
+    }
+    else if constexpr (op == SEC) {
+
+    }
+    else if constexpr (op == SED) {
+
+    }
+    else if constexpr (op == SEI) {
+
+    }
+    else if constexpr (op == STA) {
+
+    }
+    else if constexpr (op == STX) {
+
+    }
+    else if constexpr (op == STY) {
+
+    }
+    else if constexpr (op == TAX) {
+
+    }
+    else if constexpr (op == TAY) {
+
+    }
+    else if constexpr (op == TSX) {
+
+    }
+    else if constexpr (op == TXA) {
+
+    }
+    else if constexpr (op == TXS) {
+
+    }
+    else if constexpr (op == TYA) {
+
+    }
+}
+
 void Ricoh2A03::step() {
 
+    // For conciseness
+    typedef void (Ricoh2A03::*instruction)();
+    using a = Ricoh2A03;
+    
+    // Lookup table of function pointers, indexed by opcode to get 
+    //      the instruction to execute ... 
+    static const instruction lookup[0x100] = 
+    {
+    /* ~Dorceless~            0x-0              0x-1              0x-2              0x-3              0x-4              0x-5              0x-6              0x-7              0x-8              0x-9              0x-A              0x-B              0x-C              0x-D              0x-E              0x-F */ 
+        /* 0x0- */ &a::ins<IMM,BRK>, &a::ins<IZX,ORA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,ORA>, &a::ins<ZP0,ASL>, &a::ins<IMP,NOP>, &a::ins<IMP,PHP>, &a::ins<IMM,ORA>, &a::ins<IMP,ASL>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABS,ORA>, &a::ins<ABS,ASL>, &a::ins<IMP,NOP>,
+		/* 0x1- */ &a::ins<REL,BPL>, &a::ins<IZY,ORA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,ORA>, &a::ins<ZPX,ASL>, &a::ins<IMP,NOP>, &a::ins<IMP,CLC>, &a::ins<ABY,ORA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,ORA>, &a::ins<ABX,ASL>, &a::ins<IMP,NOP>,
+		/* 0x2- */ &a::ins<ABS,JSR>, &a::ins<IZX,AND>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,BIT>, &a::ins<ZP0,AND>, &a::ins<ZP0,ROL>, &a::ins<IMP,NOP>, &a::ins<IMP,PLP>, &a::ins<IMM,AND>, &a::ins<IMP,ROL>, &a::ins<IMP,NOP>, &a::ins<ABS,BIT>, &a::ins<ABS,AND>, &a::ins<ABS,ROL>, &a::ins<IMP,NOP>,
+		/* 0x3- */ &a::ins<REL,BMI>, &a::ins<IZY,AND>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,AND>, &a::ins<ZPX,ROL>, &a::ins<IMP,NOP>, &a::ins<IMP,SEC>, &a::ins<ABY,AND>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,AND>, &a::ins<ABX,ROL>, &a::ins<IMP,NOP>,
+		/* 0x4- */ &a::ins<IMP,RTI>, &a::ins<IZX,EOR>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,EOR>, &a::ins<ZP0,LSR>, &a::ins<IMP,NOP>, &a::ins<IMP,PHA>, &a::ins<IMM,EOR>, &a::ins<IMP,LSR>, &a::ins<IMP,NOP>, &a::ins<ABS,JMP>, &a::ins<ABS,EOR>, &a::ins<ABS,LSR>, &a::ins<IMP,NOP>,
+		/* 0x5- */ &a::ins<REL,BVC>, &a::ins<IZY,EOR>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,EOR>, &a::ins<ZPX,LSR>, &a::ins<IMP,NOP>, &a::ins<IMP,CLI>, &a::ins<ABY,EOR>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,EOR>, &a::ins<ABX,LSR>, &a::ins<IMP,NOP>,
+		/* 0x6- */ &a::ins<IMP,RTS>, &a::ins<IZX,ADC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,ADC>, &a::ins<ZP0,ROR>, &a::ins<IMP,NOP>, &a::ins<IMP,PLA>, &a::ins<IMM,ADC>, &a::ins<IMP,ROR>, &a::ins<IMP,NOP>, &a::ins<IND,JMP>, &a::ins<ABS,ADC>, &a::ins<ABS,ROR>, &a::ins<IMP,NOP>,
+		/* 0x7- */ &a::ins<REL,BVS>, &a::ins<IZY,ADC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,ADC>, &a::ins<ZPX,ROR>, &a::ins<IMP,NOP>, &a::ins<IMP,SEI>, &a::ins<ABY,ADC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,ADC>, &a::ins<ABX,ROR>, &a::ins<IMP,NOP>,
+		/* 0x8- */ &a::ins<IMP,NOP>, &a::ins<IZX,STA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,STY>, &a::ins<ZP0,STA>, &a::ins<ZP0,STX>, &a::ins<IMP,NOP>, &a::ins<IMP,DEY>, &a::ins<IMP,NOP>, &a::ins<IMP,TXA>, &a::ins<IMP,NOP>, &a::ins<ABS,STY>, &a::ins<ABS,STA>, &a::ins<ABS,STX>, &a::ins<IMP,NOP>,
+		/* 0x9- */ &a::ins<REL,BCC>, &a::ins<IZY,STA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,STY>, &a::ins<ZPX,STA>, &a::ins<ZPY,STX>, &a::ins<IMP,NOP>, &a::ins<IMP,TYA>, &a::ins<ABY,STA>, &a::ins<IMP,TXS>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,STA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>,
+		/* 0xA- */ &a::ins<IMM,LDY>, &a::ins<IZX,LDA>, &a::ins<IMM,LDX>, &a::ins<IMP,NOP>, &a::ins<ZP0,LDY>, &a::ins<ZP0,LDA>, &a::ins<ZP0,LDX>, &a::ins<IMP,NOP>, &a::ins<IMP,TAY>, &a::ins<IMM,LDA>, &a::ins<IMP,TAX>, &a::ins<IMP,NOP>, &a::ins<ABS,LDY>, &a::ins<ABS,LDA>, &a::ins<ABS,LDX>, &a::ins<IMP,NOP>,
+		/* 0xB- */ &a::ins<REL,BCS>, &a::ins<IZY,LDA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,LDY>, &a::ins<ZPX,LDA>, &a::ins<ZPY,LDX>, &a::ins<IMP,NOP>, &a::ins<IMP,CLV>, &a::ins<ABY,LDA>, &a::ins<IMP,TSX>, &a::ins<IMP,NOP>, &a::ins<ABX,LDY>, &a::ins<ABX,LDA>, &a::ins<ABY,LDX>, &a::ins<IMP,NOP>,
+		/* 0xC- */ &a::ins<IMM,CPY>, &a::ins<IZX,CMP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,CPY>, &a::ins<ZP0,CMP>, &a::ins<ZP0,DEC>, &a::ins<IMP,NOP>, &a::ins<IMP,INY>, &a::ins<IMM,CMP>, &a::ins<IMP,DEX>, &a::ins<IMP,NOP>, &a::ins<ABS,CPY>, &a::ins<ABS,CMP>, &a::ins<ABS,DEC>, &a::ins<IMP,NOP>,
+		/* 0xD- */ &a::ins<REL,BNE>, &a::ins<IZY,CMP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,CMP>, &a::ins<ZPX,DEC>, &a::ins<IMP,NOP>, &a::ins<IMP,CLD>, &a::ins<ABY,CMP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,CMP>, &a::ins<ABX,DEC>, &a::ins<IMP,NOP>,
+		/* 0xE- */ &a::ins<IMM,CPX>, &a::ins<IZX,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,CPX>, &a::ins<ZP0,SBC>, &a::ins<ZP0,INC>, &a::ins<IMP,NOP>, &a::ins<IMP,INX>, &a::ins<IMM,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,SBC>, &a::ins<ABS,CPX>, &a::ins<ABS,SBC>, &a::ins<ABS,INC>, &a::ins<IMP,NOP>,
+		/* 0xF- */ &a::ins<REL,BEQ>, &a::ins<IZY,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,SBC>, &a::ins<ZPX,INC>, &a::ins<IMP,NOP>, &a::ins<IMP,SED>, &a::ins<ABY,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,SBC>, &a::ins<ABX,INC>, &a::ins<IMP,NOP>,
+    };
+
+    // Read opcode, execute instruction
+    uint8_t opcode = RB(m_reg_pc++);
+    (this->*lookup[opcode])();
+
+    // TODO: Figure something out clock cycles
 }

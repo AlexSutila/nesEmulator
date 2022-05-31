@@ -37,6 +37,24 @@ private:
     void WB(uint16_t addr, uint8_t value);
     uint8_t RB(uint16_t addr);
 
+    // Enumerations for operations and addressing modes
+    enum AddrModes {
+        // 6502 Addressing Modes
+        IMP, IMM, ZP0, ZPX, ZPY, REL, 
+        ABS, ABX, ABY, IND, IZX, IZY,
+    };
+    enum Operations {
+        // 6502 Instructions / Operations
+        ADC, AND, ASL, BCC, BCS, BEQ, BIT, BMI, BNE, BPL, BRK, BVC,
+        BVS, CLC, CLD, CLI, CLV, CMP, CPX, CPY, DEC, DEX, DEY, EOR,
+        INC, INX, INY, JMP, JSR, LDA, LDX, LDY, LSR, NOP, ORA, PHA,
+        PHP, PLA, PLP, ROL, ROR, RTI, RTS, SBC, SEC, SED, SEI, STA,
+        STX, STY, TAX, TAY, TSX, TXA, TXS, TYA,
+    };
+
+    // A template for instructions, see 2A03.cc for details
+    template<AddrModes, Operations> void ins();
+
 public:
 
     // Connect components
