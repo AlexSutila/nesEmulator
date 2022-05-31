@@ -44,6 +44,9 @@ void Ricoh2A03::rst() {
 //      a_m -> addressing mode - from Ricoh2A03 member enum
 //      op  -> operation       - from Ricoh2A03 member enum
 //  Returns -> uint8_t         - any additional cycles used
+// ---------------------------------------------------------------
+// I give lots of credit to https://github.com/OneLoneCoder as I 
+//      referenced his code often to make this template
 template<Ricoh2A03::AddrModes a_m, Ricoh2A03::Operations op>
 uint8_t Ricoh2A03::ins() {
 
@@ -52,70 +55,70 @@ uint8_t Ricoh2A03::ins() {
     bool addrmode_extra_cycle = false;
 
     // Temporary variables to ease instruction execution
+    uint16_t addr_abs = 0x0000, addr_rel = 0x0000, t16 = 0x0000;
     uint8_t t8 = 0, extra_cycles = 0;
-    uint16_t addr = 0x0000;
 
     // Do addressing mode
     /**/ if constexpr (a_m == IMP) {
         t8 = m_reg_a;
     }
     else if constexpr (a_m == IMM) {
-        addr = m_reg_pc++;
+        addr_abs = m_reg_pc++;
     }
     else if constexpr (a_m == ZP0) {
-        addr = RB(m_reg_pc++) & 0x00FF;
+        addr_abs = RB(m_reg_pc++) & 0x00FF;
     }
     else if constexpr (a_m == ZPX) {
-        addr = (RB(m_reg_pc++) + m_reg_x) & 0x00FF;
+        addr_abs = (RB(m_reg_pc++) + m_reg_x) & 0x00FF;
     }
     else if constexpr (a_m == ZPY) {
-        addr = (RB(m_reg_pc++) + m_reg_y) & 0x00FF;
+        addr_abs = (RB(m_reg_pc++) + m_reg_y) & 0x00FF;
     }
     else if constexpr (a_m == REL) {
-        addr = RB(m_reg_pc++);
-        if (addr & 0x80) addr |= 0xFF00;
+        addr_rel = RB(m_reg_pc++);
+        if (addr_rel & 0x80) addr_rel |= 0xFF00;
     }
     else if constexpr (a_m == ABS) {
-        addr  = RB(m_reg_pc++);
-        addr |= RB(m_reg_pc++) << 8;
+        addr_abs  = RB(m_reg_pc++);
+        addr_abs |= RB(m_reg_pc++) << 8;
     }
     else if constexpr (a_m == ABX) {
         uint8_t lo = RB(m_reg_pc++);
         uint8_t hi = RB(m_reg_pc++);
-        addr = ((hi << 8) | lo) + m_reg_x;
+        addr_abs = ((hi << 8) | lo) + m_reg_x;
         // Specific instructions will check addrmode_extra_cycle to see if it needs the
         //      additional cycle to handle the page cross, other instructions just do
         //      the page cross regardless if its needed or not.
-        if (addr & 0xFF00 != hi << 8) 
+        if (addr_abs & 0xFF00 != hi << 8) 
             addrmode_extra_cycle = true;
     }
     else if constexpr (a_m == ABY) {
         uint8_t lo = RB(m_reg_pc++);
         uint8_t hi = RB(m_reg_pc++);
-        addr = ((hi << 8) | lo) + m_reg_y;
+        addr_abs = ((hi << 8) | lo) + m_reg_y;
         // Same rational as ABX
-        if (addr & 0xFF00 != hi << 8)
+        if (addr_abs & 0xFF00 != hi << 8)
             addrmode_extra_cycle = true;
     }
     else if constexpr (a_m == IND) {
         uint16_t rd_addr = RB(m_reg_pc++);
         rd_addr |=  (RB(m_reg_pc++) << 8);
-        addr = (rd_addr & 0x00FF) == 0xFF ?
+        addr_abs = (rd_addr & 0x00FF) == 0xFF ?
             (RB(rd_addr & 0xFF00) << 8) | RB(rd_addr): // Hardware bug on page boundaries
             (RB(rd_addr + 0x0001) << 8) | RB(rd_addr); // Regular behavior
     }
     else if constexpr (a_m == IZX) {
         uint16_t rd_addr = RB(m_reg_pc++);
-        addr  = RB((uint16_t)(rd_addr + (uint16_t)m_reg_x    ) & 0x00FF);
-        addr |= RB((uint16_t)(rd_addr + (uint16_t)m_reg_x + 1) & 0x00FF) << 8;
+        addr_abs  = RB((uint16_t)(rd_addr + (uint16_t)m_reg_x    ) & 0x00FF);
+        addr_abs |= RB((uint16_t)(rd_addr + (uint16_t)m_reg_x + 1) & 0x00FF) << 8;
     }
     else if constexpr (a_m == IZY) {
         uint16_t rd_addr = RB(m_reg_pc++);
         uint8_t  lo = RB( rd_addr      & 0x00FF);
         uint8_t  hi = RB((rd_addr + 1) & 0x00FF);
-        addr = ((hi << 8) | lo) + m_reg_y;
+        addr_abs = ((hi << 8) | lo) + m_reg_y;
         // Page change potential to add cycle like before
-        if ((addr & 0xFF00) != (hi << 8))
+        if ((addr_abs & 0xFF00) != (hi << 8))
             addrmode_extra_cycle = true;
     }
 
@@ -127,6 +130,18 @@ uint8_t Ricoh2A03::ins() {
 
     }
     else if constexpr (op == ASL) {
+
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = (uint16_t)t8 << 1;
+        
+        m_flag_c = (t16 & 0xFF00) > 0;
+        m_flag_z = (t16 & 0x00FF) == 0;
+        m_flag_n = (t16 & 0x0080);
+
+        if constexpr (a_m == IMP)
+            m_reg_a = t16 & 0x00FF;
+
+        else WB(addr_abs, t16 & 0x00FF);
 
     }
     else if constexpr (op == BCC) {
@@ -161,14 +176,22 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == CLC) {
 
+        m_flag_c = false;
+
     }
     else if constexpr (op == CLD) {
+
+        m_flag_d = false;
 
     }
     else if constexpr (op == CLI) {
 
+        m_flag_i = false;
+
     }
     else if constexpr (op == CLV) {
+
+        m_flag_v = false;
 
     }
     else if constexpr (op == CMP) {
@@ -185,8 +208,16 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == DEX) {
 
+        m_reg_x = m_reg_x - 1;
+        m_flag_z = (m_reg_x == 0x00);
+        m_flag_n = (m_reg_x & 0x80);
+
     }
     else if constexpr (op == DEY) {
+
+        m_reg_y = m_reg_y - 1;
+        m_flag_z = (m_reg_y == 0x00);
+        m_flag_n = (m_reg_y & 0x80);
 
     }
     else if constexpr (op == EOR) {
@@ -197,8 +228,16 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == INX) {
 
+        m_reg_x++;
+        m_flag_z = (m_reg_x == 0x00);
+        m_flag_n = (m_reg_x & 0x80);
+
     }
     else if constexpr (op == INY) {
+
+        m_reg_y++;
+        m_flag_z = (m_reg_y == 0x00);
+        m_flag_n = (m_reg_y & 0x80);
 
     }
     else if constexpr (op == JMP) {
@@ -218,9 +257,23 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == LSR) {
 
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = t8 >> 1;
+        
+        m_flag_c = t8 & 0x01;
+        m_flag_z = (t16 & 0x00FF) == 0;
+        m_flag_n = (t16 & 0x0080);
+
+        if constexpr (a_m == IMP)
+            m_reg_a = t16 & 0x00FF;
+
+        else WB(addr_abs, t16 & 0x00FF);
+
     }
     else if constexpr (op == NOP) {
-
+        // Do nothing for now - NOP (when considering illegal opcodes)
+        //      can have weird timing and I'm not sure how to handle it
+        //      quite yet ...
     }
     else if constexpr (op == ORA) {
 
@@ -239,6 +292,18 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == ROL) {
 
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = (uint16_t)(t8 << 1) | (uint16_t)m_flag_c;
+
+        m_flag_c = (t16 & 0xFF00);
+        m_flag_z = ((t16 & 0x00FF) == 0);
+        m_flag_n = (t16 & 0x0080);
+
+        if constexpr (a_m == IMP)
+            m_reg_a = t16 & 0x00FF;
+        
+        else WB(addr_abs, t16 & 0x00FF);
+    
     }
     else if constexpr (op == ROR) {
 
@@ -254,11 +319,17 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == SEC) {
 
+        m_flag_c = true;
+
     }
     else if constexpr (op == SED) {
 
+        m_flag_d = true;
+
     }
     else if constexpr (op == SEI) {
+
+        m_flag_i = true;
 
     }
     else if constexpr (op == STA) {
@@ -271,21 +342,43 @@ uint8_t Ricoh2A03::ins() {
 
     }
     else if constexpr (op == TAX) {
+        
+        m_reg_x = m_reg_a;
+        m_flag_z = (m_reg_x == 0x00);
+        m_flag_n = (m_reg_x & 0x80);
 
     }
     else if constexpr (op == TAY) {
 
+        m_reg_y = m_reg_a;
+        m_flag_z = (m_reg_y == 0x00);
+        m_flag_n = (m_reg_y & 0x80);
+
     }
     else if constexpr (op == TSX) {
+
+        m_reg_x = m_reg_s;
+        m_flag_z = (m_reg_x == 0x00);
+        m_flag_n = (m_reg_x & 0x80);
 
     }
     else if constexpr (op == TXA) {
 
+        m_reg_a = m_reg_x;
+        m_flag_z = (m_reg_a == 0x00);
+        m_flag_n = (m_reg_a & 0x80);
+
     }
     else if constexpr (op == TXS) {
 
+        m_reg_x = m_reg_s;
+
     }
     else if constexpr (op == TYA) {
+
+        m_reg_a = m_reg_y;
+        m_flag_z = (m_reg_a == 0x00);
+        m_flag_n = (m_reg_a & 0x80);
 
     }
 
