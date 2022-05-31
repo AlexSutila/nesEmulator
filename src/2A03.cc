@@ -317,8 +317,16 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == RTI) {
 
+        m_reg_p = RB(++m_reg_s + 0x0100) & 0xCF;
+        m_reg_pc  = (uint16_t)RB(++m_reg_s + 0x0100);
+        m_reg_pc |= (uint16_t)RB(++m_reg_s + 0x0100) << 8;
+
     }
     else if constexpr (op == RTS) {
+
+        m_reg_pc  = (uint16_t)RB(++m_reg_s + 0x0100);
+        m_reg_pc |= (uint16_t)RB(++m_reg_s + 0x0100) << 8;
+        ++m_reg_pc;
 
     }
     else if constexpr (op == SBC) {
