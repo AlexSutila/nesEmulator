@@ -287,14 +287,25 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == PHA) {
 
+        WB(0x0100 + m_reg_s--, m_reg_a);
+
     }
     else if constexpr (op == PHP) {
+
+        WB(0x0100 + m_reg_s--, m_reg_p | 0x30);
+        m_reg_p &= 0xCF;
 
     }
     else if constexpr (op == PLA) {
 
+        m_reg_a = RB(++m_reg_s + 0x0100);
+        m_flag_z = m_reg_a == 0x00;
+        m_flag_n = m_reg_a & 0x80;
+
     }
     else if constexpr (op == PLP) {
+
+        m_reg_p = RB(++m_reg_s + 0x0100) | 0x20;
 
     }
     else if constexpr (op == ROL) {
