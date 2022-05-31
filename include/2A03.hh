@@ -20,14 +20,14 @@ private:
         uint8_t m_reg_p;
         struct {
             // Individual bits of processor status
-            uint8_t m_flag_c  : 1;
-            uint8_t m_flag_z  : 1;
-            uint8_t m_flag_i  : 1;
-            uint8_t m_flag_b  : 1;
-            uint8_t m_unused1 : 1;
-            uint8_t m_unused2 : 1;
-            uint8_t m_flag_v  : 1;
-            uint8_t m_flag_n  : 1;
+            bool m_flag_c  : 1; // Carry bit
+            bool m_flag_z  : 1; // Zero
+            bool m_flag_i  : 1; // Disable interrupts
+            bool m_flag_d  : 1; // Decimal mode
+            bool m_flag_b  : 1; // Break
+            bool m_unused  : 1;
+            bool m_flag_v  : 1; // Overflow
+            bool m_flag_n  : 1; // Negative
         };
     };
     // Program counter is 16 bits
