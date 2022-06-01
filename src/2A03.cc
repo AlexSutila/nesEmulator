@@ -125,8 +125,26 @@ uint8_t Ricoh2A03::ins() {
     // Do operation
     /**/ if constexpr (op == ADC) {
 
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = (uint16_t)m_reg_a + (uint16_t)t8 + (uint16_t)m_flag_c;
+
+        m_flag_c = (t16 > 0xFF);
+        m_flag_z = (t16 & 0xFF) == 0;
+        m_flag_v = (~((uint16_t)m_reg_a^(uint16_t)t16)&((uint16_t)m_reg_a^(uint16_t)t16))&0x0080;
+        m_flag_n = t16 & 0x80;
+
+        m_reg_a = t16 & 0xFF;
+        if (addrmode_extra_cycle) ++extra_cycles;
     }
     else if constexpr (op == AND) {
+
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        m_reg_a &= t8;
+
+        m_flag_z = (m_reg_a == 0);
+        m_flag_n = (m_reg_a & 0x80);
+
+        if (addrmode_extra_cycle) ++extra_cycles;
 
     }
     else if constexpr (op == ASL) {
@@ -154,6 +172,13 @@ uint8_t Ricoh2A03::ins() {
 
     }
     else if constexpr (op == BIT) {
+
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = m_reg_a & t8;
+
+        m_flag_z = (t16 & 0xFF) == 0;
+        m_flag_n = t8 & 0x80;
+        m_flag_v = t8 & 0x40;
 
     }
     else if constexpr (op == BMI) {
@@ -196,11 +221,34 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == CMP) {
 
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = (uint16_t)m_reg_a - (uint16_t)t8;
+
+        m_flag_c = m_reg_a >= t8;
+        m_flag_z = (t16 & 0x00FF) == 0;
+        m_flag_n = t16 & 0x0080;
+
+        if (addrmode_extra_cycle) ++extra_cycles;
+
     }
     else if constexpr (op == CPX) {
 
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = (uint16_t)m_reg_x - (uint16_t)t8;
+
+        m_flag_c = (m_reg_x >= t8);
+        m_flag_z = (t16 & 0x00FF) == 0;
+        m_flag_n = (t16 & 0x0080);
+
     }
     else if constexpr (op == CPY) {
+
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = (uint16_t)m_reg_y - (uint16_t)t8;
+
+        m_flag_c = (m_reg_y >= t8);
+        m_flag_z = (t16 & 0x00FF) == 0;
+        m_flag_n = (t16 & 0x0080);
 
     }
     else if constexpr (op == DEC) {
@@ -228,6 +276,14 @@ uint8_t Ricoh2A03::ins() {
 
     }
     else if constexpr (op == EOR) {
+
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        m_reg_a ^= t8;
+
+        m_flag_z = (m_reg_a == 0x00);
+        m_flag_n = (m_reg_a & 0x80);
+
+        if (addrmode_extra_cycle) ++extra_cycles;
 
     }
     else if constexpr (op == INC) {
@@ -269,11 +325,35 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == LDA) {
 
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        m_reg_a = t8;
+
+        m_flag_z = (m_reg_a == 0x00);
+        m_flag_n = (m_reg_a & 0x80);
+
+        if (addrmode_extra_cycle) ++extra_cycles;
+
     }
     else if constexpr (op == LDX) {
 
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        m_reg_x = t8;
+
+        m_flag_z = (m_reg_x == 0x00);
+        m_flag_n = (m_reg_x & 0x80);
+
+        if (addrmode_extra_cycle) ++extra_cycles;
+
     }
     else if constexpr (op == LDY) {
+
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        m_reg_y = t8;
+
+        m_flag_z = (m_reg_y == 0x00);
+        m_flag_n = (m_reg_y & 0x80);
+
+        if (addrmode_extra_cycle) ++extra_cycles;
 
     }
     else if constexpr (op == LSR) {
@@ -297,6 +377,14 @@ uint8_t Ricoh2A03::ins() {
         //      quite yet ...
     }
     else if constexpr (op == ORA) {
+
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        m_reg_a |= t8;
+
+        m_flag_z = (m_reg_a == 0x00);
+        m_flag_n = (m_reg_a & 0x80);
+
+        if (addrmode_extra_cycle) ++extra_cycles;
 
     }
     else if constexpr (op == PHA) {
@@ -367,6 +455,17 @@ uint8_t Ricoh2A03::ins() {
 
     }
     else if constexpr (op == SBC) {
+
+        if (a_m != IMP) t8 = RB(addr_abs);
+        uint16_t val = ((uint16_t)t8) ^ 0x00FF;
+
+        t16 = (uint16_t)m_reg_a + val + (uint16_t)m_flag_c;
+        m_flag_c = (t16 & 0xFF00);
+        m_flag_z = (t16 & 0x00FF) == 0;
+        m_flag_v = (t16 ^ (uint16_t)m_reg_a) & (t16 ^ val) & 0x80;
+        m_reg_a = t16 & 0xFF;
+
+        if (addrmode_extra_cycle) ++extra_cycles;
 
     }
     else if constexpr (op == SEC) {
