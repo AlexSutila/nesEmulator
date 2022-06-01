@@ -640,7 +640,7 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == TXS) {
 
-        m_reg_x = m_reg_s;
+        m_reg_s = m_reg_x;
 
     }
     else if constexpr (op == TYA) {
