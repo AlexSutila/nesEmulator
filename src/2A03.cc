@@ -164,11 +164,41 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == BCC) {
 
+        if (!m_flag_c) {
+            ++extra_cycles;
+            addr_abs = addr_rel + m_reg_pc;
+
+            if ((addr_abs & 0xFF00) != (m_reg_pc & 0xFF00))
+                ++extra_cycles;
+
+            m_reg_pc = addr_abs;
+        }
+
     }
     else if constexpr (op == BCS) {
 
+        if (m_flag_c) {
+            ++extra_cycles;
+            addr_abs = addr_rel + m_reg_pc;
+
+            if ((addr_abs & 0xFF00) != (m_reg_pc & 0xFF00))
+                ++extra_cycles;
+
+            m_reg_pc = addr_abs;
+        }
+
     }
     else if constexpr (op == BEQ) {
+
+        if (m_flag_z) {
+            ++extra_cycles;
+            addr_abs = addr_rel + m_reg_pc;
+
+            if ((addr_abs & 0xFF00) != (m_reg_pc & 0xFF00))
+                ++extra_cycles;
+
+            m_reg_pc = addr_abs;
+        }
 
     }
     else if constexpr (op == BIT) {
@@ -181,13 +211,44 @@ uint8_t Ricoh2A03::ins() {
         m_flag_v = t8 & 0x40;
 
     }
-    else if constexpr (op == BMI) {
+    else if constexpr (op == BMI) { // I can reduce the code reuse for these branches
+                                    //     will likely come back to this
+
+        if (m_flag_n) {
+            ++extra_cycles;
+            addr_abs = addr_rel + m_reg_pc;
+
+            if ((addr_abs & 0xFF00) != (m_reg_pc & 0xFF00))
+                ++extra_cycles;
+
+            m_reg_pc = addr_abs;
+        }
 
     }
     else if constexpr (op == BNE) {
 
+        if (!m_flag_z) {
+            ++extra_cycles;
+            addr_abs = addr_rel + m_reg_pc;
+
+            if ((addr_abs & 0xFF00) != (m_reg_pc & 0xFF00))
+                ++extra_cycles;
+            
+            m_reg_pc = addr_abs;
+        }
+
     }
     else if constexpr (op == BPL) {
+
+        if (!m_flag_n) {
+            ++extra_cycles;
+            addr_abs = addr_rel + m_reg_pc;
+
+            if ((addr_abs & 0xFF00) != (m_reg_pc & 0xFF00))
+                ++extra_cycles;
+            
+            m_reg_pc = addr_abs;
+        }
 
     }
     else if constexpr (op == BRK) {
@@ -195,8 +256,28 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == BVC) {
 
+        if (!m_flag_v) {
+            ++extra_cycles;
+            addr_abs = addr_rel + m_reg_pc;
+
+            if ((addr_abs & 0xFF00) != (m_reg_pc & 0xFF00))
+                ++extra_cycles;
+            
+            m_reg_pc = addr_abs;
+        }
+
     }
     else if constexpr (op == BVS) {
+
+        if (m_flag_v) {
+            ++extra_cycles;
+            addr_abs = addr_rel + m_reg_pc;
+
+            if ((addr_abs & 0xFF00) != (m_reg_pc & 0xFF00))
+                ++extra_cycles;
+            
+            m_reg_pc = addr_abs;
+        }
 
     }
     else if constexpr (op == CLC) {
