@@ -50,7 +50,7 @@ public:
     void rst(); // Signal reset to the cpu
 
     // Step all components connected to the bus by a certain number of cycles
-    void step(uint8_t cycles);
+    void step();
 
 };
 

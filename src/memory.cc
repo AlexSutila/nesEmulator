@@ -112,8 +112,11 @@ void cpu_bus::rst() {
 
 /* Step all components on the bus ------------------------- */
 
-void cpu_bus::step(uint8_t cycles) {
-    // TODO
+void cpu_bus::step() {
+    
+    // PPU is clocked at 3x speed
+    m_ppu->step(); m_ppu->step(); m_ppu->step();
+
 }
 
 
