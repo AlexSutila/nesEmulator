@@ -19,3 +19,9 @@ void Ricoh2C02::WB(uint16_t addr, uint8_t value) {
 uint8_t Ricoh2C02::RB(uint16_t addr) {
     return m_ppu_bus->RB(addr);
 }
+
+/* Step the component one cycle */
+
+void Ricoh2C02::step() {
+    // TODO
+}

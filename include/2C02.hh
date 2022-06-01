@@ -26,4 +26,7 @@ public:
     void WB(uint16_t addr, uint8_t value);
     uint8_t RB(uint16_t addr);
 
+    // Step the component one cycle
+    void step();
+
 };
