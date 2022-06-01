@@ -29,6 +29,14 @@ void Ricoh2A03::nmi() {
 
 void Ricoh2A03::rst() {
 
+    // Reset registers
+    m_reg_a = 0x00; m_reg_x = 0x00;
+    m_reg_y = 0x00; m_reg_s = 0xFD;
+    m_reg_p = 0x00;
+
+    // Initialize the PC to entry point
+    m_reg_pc = RB(0xFFFC) | (RB(0xFFFD) << 8);
+
 }
 
 

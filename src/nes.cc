@@ -25,4 +25,6 @@ bool nes::load_cart(const std::string& rom_path) {
 
 void nes::run() {
 
+    m_cpu_bus.rst();
+
 }
