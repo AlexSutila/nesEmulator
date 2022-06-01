@@ -36,7 +36,7 @@ bool Cart::load_rom(const std::string& rom_path) {
     }
 
     // Ignore the 512 byte trainer, if the file contains it
-    if (m_cart_header.mapper_0 & 0x4 != 0x0) 
+    if ((m_cart_header.mapper_0 & 0x4) != 0x0) 
         rom_file.seekg(512, rom_file.cur);
 
     // Resize the vectors based on the specifications in the header
