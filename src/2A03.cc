@@ -253,6 +253,15 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == BRK) {
 
+        m_flag_i = true; 
+        WB(0x0100 + m_reg_s--, (++m_reg_pc >> 8) & 0xFF);
+        WB(0x0100 + m_reg_s--, m_reg_pc & 0xFF);
+        
+        WB(0x100 + m_reg_s--, m_reg_p | 0x10);
+        m_flag_b = false;
+
+        m_reg_pc = (uint16_t)RB(0xFFFE) | ((uint16_t)RB(0xFFFF) << 8);
+
     }
     else if constexpr (op == BVC) {
 
