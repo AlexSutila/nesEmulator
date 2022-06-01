@@ -205,6 +205,13 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == DEC) {
 
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = t8 - 1;
+
+        WB(addr_abs, t16 & 0x00FF);
+        m_flag_z = (t16 & 0xFF) == 0;
+        m_flag_n = t16 & 0x80;
+
     }
     else if constexpr (op == DEX) {
 
@@ -224,6 +231,13 @@ uint8_t Ricoh2A03::ins() {
 
     }
     else if constexpr (op == INC) {
+
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = t8 + 1;
+
+        WB(addr_abs, t16 & 0x00FF);
+        m_flag_z = (t16 & 0xFF) == 0;
+        m_flag_n = t16 & 0x80;
 
     }
     else if constexpr (op == INX) {
@@ -324,6 +338,18 @@ uint8_t Ricoh2A03::ins() {
     
     }
     else if constexpr (op == ROR) {
+
+        if constexpr (a_m != IMP) t8 = RB(addr_abs);
+        t16 = (uint16_t)(m_flag_c << 7) | (t16 >> 7);
+
+        m_flag_c = t8 & 0x01;
+        m_flag_z = (t16 & 0xFF) == 0;
+        m_flag_n = t16 & 0x80;
+
+        if constexpr (a_m == IMP)
+            m_reg_a = t16 & 0x00FF;
+
+        else WB(addr_abs, t16 & 0x00FF); 
 
     }
     else if constexpr (op == RTI) {
