@@ -1,3 +1,4 @@
+#include <iostream>
 #include "nes.hh"
 
 nes::nes() {
@@ -25,6 +26,22 @@ bool nes::load_cart(const std::string& rom_path) {
 
 void nes::run() {
 
+    // Send reset signal
     m_cpu_bus.rst();
+
+    for (;;) {
+
+        // Execute a single instructoin
+        uint8_t cycles = m_cpu.step();
+        m_cpu.debug_print_state();
+
+        // Catch up remaining components
+        for(cycles; cycles > 0; cycles--) 
+            m_cpu_bus.step();
+        
+        // Temporary, to pause after each instruction
+        std::getchar();
+
+    }
 
 }

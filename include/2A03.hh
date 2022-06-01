@@ -57,6 +57,9 @@ private:
 
 public:
 
+    // A convenience function to see register states
+    void debug_print_state();
+
     // Connect components
     void connect_bus(cpu_bus* cpu_bus_ptr);
 
@@ -66,7 +69,7 @@ public:
     void rst(); // Reset signal
 
     // Drives the emulation
-    void step();
+    uint8_t step();
 
     // TODO: Instructions and addressing modes
 

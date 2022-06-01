@@ -1,5 +1,19 @@
 #include "2A03.hh"
 
+/* A convenience function to see register states ---------- */
+
+#include <iostream>
+void Ricoh2A03::debug_print_state() {
+
+    std::cout << std::hex << " A: 0x" << (int)m_reg_a  << "\n";
+    std::cout << std::hex << " X: 0x" << (int)m_reg_x  << "\n";
+    std::cout << std::hex << " Y: 0x" << (int)m_reg_y  << "\n";
+    std::cout << std::hex << " S: 0x" << (int)m_reg_s  << "\n";
+    std::cout << std::hex << " P: 0x" << (int)m_reg_p  << "\n";
+    std::cout << std::hex << "PC: 0x" << (int)m_reg_pc << std::endl;
+
+}
+
 /* Busline connections ------------------------------------ */
 
 void Ricoh2A03::connect_bus(cpu_bus* cpu_bus_ptr) {
@@ -640,7 +654,7 @@ uint8_t Ricoh2A03::ins() {
     return extra_cycles;
 }
 
-void Ricoh2A03::step() {
+uint8_t Ricoh2A03::step() {
 
     // For conciseness
     typedef uint8_t (Ricoh2A03::*instruction)();
@@ -668,7 +682,30 @@ void Ricoh2A03::step() {
 		/* 0xE- */ &a::ins<IMM,CPX>, &a::ins<IZX,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,CPX>, &a::ins<ZP0,SBC>, &a::ins<ZP0,INC>, &a::ins<IMP,NOP>, &a::ins<IMP,INX>, &a::ins<IMM,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,SBC>, &a::ins<ABS,CPX>, &a::ins<ABS,SBC>, &a::ins<ABS,INC>, &a::ins<IMP,NOP>,
 		/* 0xF- */ &a::ins<REL,BEQ>, &a::ins<IZY,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,SBC>, &a::ins<ZPX,INC>, &a::ins<IMP,NOP>, &a::ins<IMP,SED>, &a::ins<ABY,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,SBC>, &a::ins<ABX,INC>, &a::ins<IMP,NOP>,
     };
+    // Look up table for the base amount of cycles an instruction
+    //      uses, any extra cycles used are returned from the function
+    //      from the lookup table
+    static const uint8_t cycle_timings[0x100] = 
+    {
+        7, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,
+	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	    6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 4, 4, 6, 6,
+	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	    6, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 3, 4, 6, 6,
+	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	    6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 5, 4, 6, 6,
+	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	    2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+	    2, 6, 2, 6, 4, 4, 4, 4, 2, 5, 2, 5, 5, 5, 5, 5,
+	    2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
+	    2, 5, 2, 5, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4,
+	    2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+	    2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
+    };
 
     uint8_t opcode = RB(m_reg_pc++);
-    (this->*lookup[opcode])();
+    uint8_t extra_cycles = (this->*lookup[opcode])();
+    return extra_cycles + cycle_timings[opcode];
 }
