@@ -1,5 +1,19 @@
 #include "2C02.hh"
 
+Ricoh2C02::Ricoh2C02() {
+
+    // Initialize registers
+    m_reg_ctrl1      = 0x00;
+    m_reg_ctrl2      = 0x00;
+    m_reg_status     = 0x00;
+    m_reg_spr_addr   = 0x00;
+    m_reg_spr_io     = 0x00;
+    m_reg_vram_addr1 = 0x00;
+    m_reg_vram_addr2 = 0x00;
+    m_reg_vram_io    = 0x00;
+
+}
+
 /* Bus connections */
 
 void Ricoh2C02::connect_bus(cpu_bus* cpu_bus_ptr) {
@@ -24,4 +38,62 @@ uint8_t Ricoh2C02::RB(uint16_t addr) {
 
 void Ricoh2C02::step() {
     // TODO
+}
+
+/* MMIO functions - very subject to change */
+
+void Ricoh2C02::ctrl1_w(uint8_t value) {
+    m_reg_ctrl1 = value;
+}
+uint8_t Ricoh2C02::ctrl1_r() {
+    return m_reg_ctrl1;
+}
+
+void Ricoh2C02::ctrl2_w(uint8_t value) {
+    m_reg_ctrl2 = value;
+}
+uint8_t Ricoh2C02::ctrl2_r() {
+    return m_reg_ctrl2;
+}
+
+void Ricoh2C02::status_w(uint8_t value) {
+    m_reg_status = value;
+}
+uint8_t Ricoh2C02::status_r() {
+    return m_reg_status;
+}
+
+void Ricoh2C02::spr_addr_w(uint8_t value) {
+    m_reg_spr_addr = value;
+}
+uint8_t Ricoh2C02::spr_addr_r() {
+    return m_reg_spr_addr;
+}
+
+void Ricoh2C02::spr_io_w(uint8_t value) {
+    m_reg_spr_io = value;
+}
+uint8_t Ricoh2C02::spr_io_r() {
+    return m_reg_spr_io;
+}
+
+void Ricoh2C02::vram_addr1_w(uint8_t value) {
+    m_reg_vram_addr1 = value;
+}
+uint8_t Ricoh2C02::vram_addr1_r() {
+    return m_reg_vram_addr1;
+}
+
+void Ricoh2C02::vram_addr2_w(uint8_t value) {
+    m_reg_vram_addr2 = value;
+}
+uint8_t Ricoh2C02::vram_addr2_r() {
+    return m_reg_vram_addr2;
+}
+
+void Ricoh2C02::vram_io_w(uint8_t value) {
+    m_reg_vram_io = value;
+}
+uint8_t Ricoh2C02::vram_io_r() {
+    return m_reg_vram_io;
 }

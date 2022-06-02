@@ -10,6 +10,16 @@ struct Ricoh2C02 {
 
 private:
 
+    // Memory mapped IO registers
+    uint8_t m_reg_ctrl1;      // Mapped to address 0x2000
+    uint8_t m_reg_ctrl2;      // Mapped to address 0x2001
+    uint8_t m_reg_status;     // Mapped to address 0x2002
+    uint8_t m_reg_spr_addr;   // Mapped to address 0x2003
+    uint8_t m_reg_spr_io;     // Mapped to address 0x2004
+    uint8_t m_reg_vram_addr1; // Mapped to address 0x2005
+    uint8_t m_reg_vram_addr2; // Mapped to address 0x2006
+    uint8_t m_reg_vram_io;    // Mapped to address 0x2007
+
     // A pointer to the PPU busline
     ppu_bus* m_ppu_bus;
 
@@ -17,6 +27,8 @@ private:
     cpu_bus* m_cpu_bus;
 
 public:
+
+    Ricoh2C02();
 
     // Connect components
     void connect_bus(cpu_bus* cpu_bus_ptr);
@@ -28,5 +40,16 @@ public:
 
     // Step the component one cycle
     void step();
+
+    /* MMIO functions ------------------------------------- */
+
+    void      ctrl1_w(uint8_t value); uint8_t      ctrl1_r(); // Mapped to address 0x2000
+    void      ctrl2_w(uint8_t value); uint8_t      ctrl2_r(); // Mapped to address 0x2001
+    void     status_w(uint8_t value); uint8_t     status_r(); // Mapped to address 0x2002
+    void   spr_addr_w(uint8_t value); uint8_t   spr_addr_r(); // Mapped to address 0x2003
+    void     spr_io_w(uint8_t value); uint8_t     spr_io_r(); // Mapped to address 0x2004
+    void vram_addr1_w(uint8_t value); uint8_t vram_addr1_r(); // Mapped to address 0x2005
+    void vram_addr2_w(uint8_t value); uint8_t vram_addr2_r(); // Mapped to address 0x2006
+    void    vram_io_w(uint8_t value); uint8_t    vram_io_r(); // Mapped to address 0x2007
 
 };
