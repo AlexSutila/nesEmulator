@@ -1,18 +1,99 @@
 #include "2A03.hh"
 
-/* A convenience function to see register states ---------- */
+Ricoh2A03::Ricoh2A03() {
 
-#include <iostream>
+    #ifdef DEBUG_2A03
+
+    // Open the execution dump for debugging
+    outdump.open("testing/outdump.txt", std::ios::in | std::ios::binary);
+    if (!outdump.is_open()) {
+        std::cout << "Outdump failed to open - terminating" << std::endl;
+        exit(-1);
+    }
+
+    #endif
+
+}
+
+Ricoh2A03::~Ricoh2A03() {
+
+    #ifdef DEBUG_2A03
+
+    // Close the execution dump file
+    if (outdump.is_open()) outdump.close();
+
+    #endif
+
+}
+
+/* Debug Utilities ---------------------------------------- */
+
+#ifdef DEBUG_2A03
+
 void Ricoh2A03::debug_print_state() {
 
+    std::cout << "Virtual CPU State:\n";
     std::cout << std::hex << " A: 0x" << (int)m_reg_a  << "\n";
     std::cout << std::hex << " X: 0x" << (int)m_reg_x  << "\n";
     std::cout << std::hex << " Y: 0x" << (int)m_reg_y  << "\n";
     std::cout << std::hex << " S: 0x" << (int)m_reg_s  << "\n";
     std::cout << std::hex << " P: 0x" << (int)m_reg_p  << "\n";
-    std::cout << std::hex << "PC: 0x" << (int)m_reg_pc << std::endl;
+    std::cout << std::hex << "PC: 0x" << (int)m_reg_pc << "\n\n";
 
 }
+
+void Ricoh2A03::compare_with_log() {
+
+    static long long elapsed_instructions = 0;
+
+    struct {
+        uint8_t pc_lo;
+        uint8_t pc_hi;
+        uint8_t a;
+        uint8_t x;
+        uint8_t y;
+        uint8_t p;
+        uint8_t s;
+    } regState;
+
+    // Stop executing if log is done
+    if (outdump.eof()) {
+        std::cout << "Log comparison complete!" << std::endl;
+        exit(0);
+    }
+
+    uint16_t expected_PC = (uint16_t)(regState.pc_lo | (regState.pc_hi << 8));
+
+    // Read register values from execution dump
+    outdump.read((char*)&regState, sizeof(regState));
+
+    // Print current CPU state
+    debug_print_state();
+
+    // Compare and nofity if something is different
+    if ((regState.a != m_reg_a)
+     || (regState.x != m_reg_x)
+     || (regState.y != m_reg_y)
+     || (regState.p != m_reg_p)
+     || (regState.s != m_reg_s)) {
+
+            std::cout<<" <<< Expected >>> Instr Count:"<<std::dec<<elapsed_instructions<<'\n';
+            std::cout << std::hex << " A: 0x" << (int)regState.a  << "\n";
+            std::cout << std::hex << " X: 0x" << (int)regState.x  << "\n";
+            std::cout << std::hex << " Y: 0x" << (int)regState.y  << "\n";
+            std::cout << std::hex << " S: 0x" << (int)regState.s  << "\n";
+            std::cout << std::hex << " P: 0x" << (int)regState.p  << "\n";
+            std::cout << std::hex << "PC: 0x" << (int)expected_PC << "\n";
+            
+            // Pause
+            getchar();
+        } 
+
+    ++elapsed_instructions;
+
+}
+
+#endif
 
 /* Busline connections ------------------------------------ */
 
@@ -704,6 +785,11 @@ uint8_t Ricoh2A03::step() {
 	    2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
 	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
     };
+
+    // Comparison with execution log
+    #ifdef DEBUG_2A03 
+    compare_with_log();
+    #endif
 
     uint8_t opcode = RB(m_reg_pc++);
     uint8_t extra_cycles = (this->*lookup[opcode])();

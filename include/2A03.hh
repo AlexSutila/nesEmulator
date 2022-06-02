@@ -1,5 +1,11 @@
 #pragma once
+
+// Uncomment to enable comparing with execution log
+// #define DEBUG_2A03
+
 #include <cstdint>
+#include <iostream> // Only used for debugging
+#include <fstream>  // Only used for debugging
 #include <memory>
 #include "memory.hh"
 
@@ -9,6 +15,10 @@ struct ppu_bus;
 struct Ricoh2A03 {
 
 private:
+
+    #ifdef DEBUG_2A03
+    std::ifstream outdump;
+    #endif
 
     // A pointer to the CPU busline
     cpu_bus* m_bus;
@@ -57,8 +67,13 @@ private:
 
 public:
 
-    // A convenience function to see register states
+    Ricoh2A03(); ~Ricoh2A03();
+
+    // Debug utilities
+    #ifdef DEBUG_2A03
     void debug_print_state();
+    void compare_with_log();
+    #endif
 
     // Connect components
     void connect_bus(cpu_bus* cpu_bus_ptr);
