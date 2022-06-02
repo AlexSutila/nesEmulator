@@ -49,9 +49,9 @@ bool Cart::load_rom(const std::string& rom_path) {
     rom_file.read((char*)m_chr_rom.data(), m_chr_rom.size() * sizeof(uint8_t));
 
     // Initialize the mapper pointer
-    uint8_t mapper_number = (m_cart_header.mapper_1 & 0xF0) & ((m_cart_header.mapper_0 & 0x0F) >> 4);
+    uint8_t mapper_number = (m_cart_header.mapper_1 & 0xF0) | ((m_cart_header.mapper_0 & 0xF0) >> 4);
     if (!init_mapper(mapper_number)) {
-        std::cout << "Unimplemented mapper type" << std::endl;
+        std::cout << "Unimplemented mapper type: " << (int)mapper_number << std::endl;
         return false;
     } 
 
