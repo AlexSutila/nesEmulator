@@ -25,8 +25,8 @@ private:
     Cart* m_cart;
 
     // Hash maps to map memory access functions for IO registers to virtual addresses
-    std::unordered_map<uint16_t, void(cpu_bus::*)(uint8_t value)> m_io_writes;
-    std::unordered_map<uint16_t, uint8_t(cpu_bus::*)()> m_io_reads;
+    std::unordered_map<uint16_t, void(*)(cpu_bus& t, uint8_t value)> m_io_writes;
+    std::unordered_map<uint16_t, uint8_t(*)(cpu_bus& t)> m_io_reads;
 
     // Auxiliary functions to be mapped to virtual addresses in the hash maps above
     //      which call the corresponging IO r/w functions from the respectivecomponent

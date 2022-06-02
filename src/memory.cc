@@ -12,8 +12,6 @@ cpu_bus::cpu_bus() {
     // Allocate memory for CPU ram
     m_ram = std::make_unique<uint8_t[]>(0x0800);
 
-    // Initialize the hash map for mapped IO
-
 }
 
 /* Connect components ------------------------------------- */
@@ -24,6 +22,34 @@ void cpu_bus::connect_cpu(Ricoh2A03* cpu_ptr) {
 
 void cpu_bus::connect_ppu(Ricoh2C02* ppu_ptr) {
     m_ppu = ppu_ptr;
+
+    /* Map MMIO registers to respective addresses */
+    
+    //                                                ctrl1 - Mapped to memory address 0x2000
+    m_io_writes[0x2000] = [](cpu_bus& t, uint8_t value) { t.m_ppu->ctrl1_w(value); };
+     m_io_reads[0x2000] = [](cpu_bus& t) { return t.m_ppu->ctrl1_r(); };
+    //                                                crtl2 - Mapped to memory address 0x2001
+    m_io_writes[0x2001] = [](cpu_bus& t, uint8_t value) { t.m_ppu->ctrl2_w(value); };
+     m_io_reads[0x2001] = [](cpu_bus& t) { return t.m_ppu->ctrl2_r(); };
+    //                                               status - Mapped to memory address 0x2002
+    m_io_writes[0x2002] = [](cpu_bus& t, uint8_t value) { t.m_ppu->status_w(value); };
+     m_io_reads[0x2002] = [](cpu_bus& t) { return t.m_ppu->status_r(); };
+    //                                             spr_addr - Mapped to memory address 0x2003
+    m_io_writes[0x2003] = [](cpu_bus& t, uint8_t value) { t.m_ppu->spr_addr_w(value); };
+     m_io_reads[0x2003] = [](cpu_bus& t) { return t.m_ppu->spr_addr_r(); };
+    //                                               spr_io - Mapped to memory address 0x2004
+    m_io_writes[0x2004] = [](cpu_bus& t, uint8_t value) { t.m_ppu->spr_io_w(value); };
+     m_io_reads[0x2004] = [](cpu_bus& t) { return t.m_ppu->spr_io_r(); };
+    //                                           vram_addr1 - Mapped to memory address 0x2005
+    m_io_writes[0x2005] = [](cpu_bus& t, uint8_t value) { t.m_ppu->vram_addr1_w(value); };
+     m_io_reads[0x2005] = [](cpu_bus& t) { return t.m_ppu->vram_addr1_r(); };
+    //                                           vram_addr2 - Mapped to memory address 0x2006
+    m_io_writes[0x2006] = [](cpu_bus& t, uint8_t value) { t.m_ppu->vram_addr2_w(value); };
+     m_io_reads[0x2006] = [](cpu_bus& t) { return t.m_ppu->vram_addr2_r(); };
+    //                                              vram_io - Mapped to memory address 0x2007
+    m_io_writes[0x2007] = [](cpu_bus& t, uint8_t value) { t.m_ppu->vram_io_w(value); };
+     m_io_reads[0x2007] = [](cpu_bus& t) { return t.m_ppu->vram_io_r(); };
+
 }
 
 void cpu_bus::connect_cart(Cart* cart_ptr) {
@@ -49,11 +75,8 @@ void cpu_bus::WB(uint16_t addr, uint8_t value) {
 
         // Pull the function from the hash map and if there is a mapping
         //      jump to the io regsiter write function
-        void(cpu_bus::*write_function)(uint8_t) = m_io_writes[reduced_addr];
-        if (write_function != nullptr) {
-            // ... This is a function call
-            (this->*write_function)(value);
-        }
+        void(*write_function)(cpu_bus&, uint8_t) = m_io_writes[reduced_addr];
+        if (write_function != nullptr) (*write_function)(*this, value);
     } 
     
     // Cart - Address Range 0x4020 - 0xFFFF
@@ -80,11 +103,8 @@ uint8_t cpu_bus::RB(uint16_t addr) {
 
         // Pull the function from the hash map and if there is a mapping 
         //      jump to the io register read function
-        uint8_t(cpu_bus::*read_function)() = m_io_reads[reduced_addr];
-        if (read_function != nullptr) {
-            // ... This is also a function call
-            (this->*read_function)();
-        }
+        uint8_t(*read_function)(cpu_bus&) = m_io_reads[reduced_addr];
+        if (read_function != nullptr) (*read_function)(*this);
 
     } 
     
