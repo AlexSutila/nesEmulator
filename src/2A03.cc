@@ -183,7 +183,7 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (a_m == ABS) {
         addr_abs  = RB(m_reg_pc++);
-        addr_abs |= RB(m_reg_pc++) << 8;
+        addr_abs |= (RB(m_reg_pc++) << 8);
     }
     else if constexpr (a_m == ABX) {
         uint8_t lo = RB(m_reg_pc++);
@@ -192,7 +192,7 @@ uint8_t Ricoh2A03::ins() {
         // Specific instructions will check addrmode_extra_cycle to see if it needs the
         //      additional cycle to handle the page cross, other instructions just do
         //      the page cross regardless if its needed or not.
-        if (addr_abs & 0xFF00 != hi << 8) 
+        if ((addr_abs & 0xFF00) != (hi << 8)) 
             addrmode_extra_cycle = true;
     }
     else if constexpr (a_m == ABY) {
@@ -200,7 +200,7 @@ uint8_t Ricoh2A03::ins() {
         uint8_t hi = RB(m_reg_pc++);
         addr_abs = ((hi << 8) | lo) + m_reg_y;
         // Same rational as ABX
-        if (addr_abs & 0xFF00 != hi << 8)
+        if ((addr_abs & 0xFF00) != (hi << 8))
             addrmode_extra_cycle = true;
     }
     else if constexpr (a_m == IND) {
@@ -621,7 +621,7 @@ uint8_t Ricoh2A03::ins() {
     else if constexpr (op == ROR) {
 
         if constexpr (a_m != IMP) t8 = RB(addr_abs);
-        t16 = (uint16_t)(m_flag_c << 7) | (t16 >> 7);
+        t16 = (uint16_t)(m_flag_c << 7) | (t8 >> 1);
 
         m_flag_c = t8 & 0x01;
         m_flag_z = (t16 & 0xFF) == 0;
