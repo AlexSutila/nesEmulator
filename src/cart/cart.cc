@@ -100,3 +100,10 @@ uint8_t* Cart::get_CHR_ROM() {
 uint8_t* Cart::get_PRG_RAM() {
     return m_prg_ram.data();
 }
+
+
+/* Reset signal to put cartridge in initial conditions ---- */
+
+void Cart::rst() {
+    m_mapper->rst();
+}

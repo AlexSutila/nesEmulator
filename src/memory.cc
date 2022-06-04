@@ -127,6 +127,12 @@ void cpu_bus::nmi() {
 }
 
 void cpu_bus::rst() {
+
+    /*
+        NOTE: It is important that the cartridge is reset first to put the mapper in the correct
+            initial conditions before the entry point is fetched from the fixed address.
+    */
+    m_cart->rst();
     m_cpu->rst();
 }
 

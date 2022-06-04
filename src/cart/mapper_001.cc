@@ -127,3 +127,13 @@ void Mapper_001::ppu_WB(uint16_t addr, uint8_t value) {
 uint8_t Mapper_001::ppu_RB(uint16_t addr) {
     return 0x00;
 }
+
+void Mapper_001::rst() {
+
+    m_reg_ctrl.raw = 0x1C;
+    m_chr_bank0 = 0x00;
+    m_chr_bank1 = 0x00;
+    m_prg_bank0 = 0x00;
+    m_prg_bank1 = (m_size_prg_rom / 0x4000) - 1; // Init to last bank
+
+}

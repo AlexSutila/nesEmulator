@@ -68,4 +68,7 @@ public:
     uint8_t* get_CHR_ROM();
     uint8_t* get_PRG_RAM();
 
+    // Reset signal to put cartridge in initial conditions
+    void rst();
+
 };

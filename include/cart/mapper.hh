@@ -18,6 +18,9 @@ public:
     // Mapper access by PPU
     virtual void ppu_WB(uint16_t addr, uint8_t value) = 0;
     virtual uint8_t ppu_RB(uint16_t addr) = 0;
+    
+    // Reset mapper to initial conditions
+    virtual void rst() = 0;
 
 };
 
@@ -49,6 +52,9 @@ public:
     // Mapper access by PPU
     void ppu_WB(uint16_t addr, uint8_t value) override;
     uint8_t ppu_RB(uint16_t addr) /* ----- */ override;
+
+    // Reset mapper to initial conditions
+    void rst() override;
 
 };
 
@@ -115,5 +121,7 @@ public:
     void ppu_WB(uint16_t addr, uint8_t value) override;
     uint8_t ppu_RB(uint16_t addr) /* ----- */ override;
 
+    // Reset mapper to initial conditions
+    void rst() override;
 
 };

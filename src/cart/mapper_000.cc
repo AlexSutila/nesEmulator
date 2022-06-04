@@ -62,3 +62,7 @@ uint8_t Mapper_000::ppu_RB(uint16_t addr) {
 
     return 0x00;
 }
+
+void Mapper_000::rst() {
+    // This doesn't really need to do anything
+}
