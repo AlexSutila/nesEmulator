@@ -1,10 +1,19 @@
 #pragma once
-
 #include <cstdint>
 
-/* Many readable and writable bytes within memory can be manipulated w many
-   addresses. This header exists to provide functions to reduce all mirrored 
-   addresses down to a single set of addresses to simplify things */
+namespace ntMirrors {
+
+    enum nameTableMirrorMode {
+    
+        horizontal,     // Use two internal NTs, horizontal config
+        vertical,       // Use two internal NTs, vertical config
+        singleScreenLo, // Use lower bank from internal NT mirrored 4 times
+        singleScreenHi, // Use upper bank from internal NT mirrored 4 times
+        fourScreen,     // Use external RAM for four individual nametables
+    
+    };
+
+}
 
 namespace AddressMirrors {
 
