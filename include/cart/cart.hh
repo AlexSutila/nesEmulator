@@ -1,4 +1,5 @@
 #pragma once
+#include "cart/ntmirrors.hh"
 #include "cart/mapper.hh"
 #include <cstdint>
 #include <memory>
@@ -67,6 +68,9 @@ public:
     uint8_t* get_PRG_ROM();
     uint8_t* get_CHR_ROM();
     uint8_t* get_PRG_RAM();
+
+    // Return the mirroring mode being used
+    ntMirrors::nameTableMirrorMode nt_mirror();
 
     // Reset signal to put cartridge in initial conditions
     void rst();

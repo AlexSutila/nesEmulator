@@ -63,6 +63,13 @@ uint8_t Mapper_000::ppu_RB(uint16_t addr) {
     return 0x00;
 }
 
+// Return name table mirroring mode
+ntMirrors::nameTableMirrorMode Mapper_000::nt_mirror() {
+
+    return ntMirrors::vertical; // This should never be used
+
+}
+
 void Mapper_000::rst() {
     // This doesn't really need to do anything
 }

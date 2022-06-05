@@ -128,6 +128,17 @@ uint8_t Mapper_001::ppu_RB(uint16_t addr) {
     return 0x00;
 }
 
+ntMirrors::nameTableMirrorMode Mapper_001::nt_mirror() {
+    
+    switch (m_reg_ctrl.mirroring) {
+        case 0: return ntMirrors::singleScreenLo;
+        case 1: return ntMirrors::singleScreenHi;
+        case 2: return ntMirrors::vertical;
+        case 3: return ntMirrors::horizontal;
+    };
+
+}
+
 void Mapper_001::rst() {
 
     m_reg_ctrl.raw = 0x1C;

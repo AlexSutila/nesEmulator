@@ -102,6 +102,25 @@ uint8_t* Cart::get_PRG_RAM() {
 }
 
 
+/* Return the mirroring mode being used ------------------- */
+
+ntMirrors::nameTableMirrorMode Cart::nt_mirror() {
+
+    // This bit being high indicates that bit zero (which normally dictates between
+    //      horizontal or vertical being pyisically soldered so that its always used)
+    //      should be used to determine mirroring.
+    //      ...
+    // Mirroring mode ignores this bit and is mapper based other wise
+    if (m_cart_header.mapper_0 & 0x08 == 0x00)
+        return (m_cart_header.mapper_0 & 0x01) ?
+            ntMirrors::vertical  : 
+            ntMirrors::horizontal;
+
+    else return m_mapper->nt_mirror();
+
+}
+
+
 /* Reset signal to put cartridge in initial conditions ---- */
 
 void Cart::rst() {
