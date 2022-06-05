@@ -2,6 +2,9 @@
 
 Ricoh2A03::Ricoh2A03() {
 
+    // Reset internal interrupt flags
+    m_nmi_requested = m_irq_requested = false;
+
     #ifdef DEBUG_2A03
 
     // Open the execution dump for debugging
@@ -116,13 +119,24 @@ uint8_t Ricoh2A03::RB(uint16_t addr) {
 
 void Ricoh2A03::irq() {
 
+    // Indicates that an irq interrupt should occur after the completion
+    //      of this instruction
+    m_irq_requested = true;
+
 }
 
 void Ricoh2A03::nmi() {
 
+    // Indicates that an nmi interrupt should occur after the completion
+    //      of this instruction
+    m_nmi_requested = true;
+
 }
 
 void Ricoh2A03::rst() {
+
+    // Reset internal interrupt flags
+    m_nmi_requested = m_irq_requested = false;
 
     // Reset registers
     m_reg_a = 0x00; m_reg_x = 0x00;
@@ -134,6 +148,23 @@ void Ricoh2A03::rst() {
 
 }
 
+/* Interrupt handling ------------------------------------- */
+
+void Ricoh2A03::do_interrupt(uint16_t addr) {
+
+    // Push PC to stack
+    WB(0x0100 + m_reg_s--, (m_reg_pc >> 8) & 0xFF);
+    WB(0x0100 + m_reg_s--, m_reg_pc & 0xFF);
+
+    // Push status to stack
+    m_flag_b = false; m_flag_i = true;
+    WB(0x0100 + m_reg_s--, m_reg_s);
+
+    // Jump to fetched jump address
+    m_reg_pc  = RB(addr++);
+    m_reg_pc |= (RB(addr) << 8);
+
+}
 
 /* Drives the emulation ----------------------------------- */
 
@@ -786,12 +817,39 @@ uint8_t Ricoh2A03::step() {
 	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
     };
 
+
     // Comparison with execution log
     #ifdef DEBUG_2A03 
     compare_with_log();
     #endif
 
+
+    // Read an opcode and execute the corresponding instruction, keep
+    //      track of any extra cycles used
     uint8_t opcode = RB(m_reg_pc++);
     uint8_t extra_cycles = (this->*lookup[opcode])();
+
+
+    // Handle interrupts and add any additional cycles used to service
+    //      them if they are triggered
+    if (m_nmi_requested) {
+        
+        do_interrupt(0xFFFE); // FFFE is where the jump addr is fetched from
+
+        // assuming both irq and nmi are pending after an instruction, nmi
+        //      takes priority and irq is forgotten
+        m_nmi_requested = m_irq_requested = false;
+
+        extra_cycles += 7;
+    }
+    if (m_irq_requested) {
+
+        do_interrupt(0xFFFA); // FFFA is where the jump addr is fetched from
+
+        m_irq_requested = false;
+        extra_cycles += 7;
+    }
+
+    // Return the total number of cycles used
     return extra_cycles + cycle_timings[opcode];
 }

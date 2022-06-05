@@ -47,6 +47,8 @@ private:
     void WB(uint16_t addr, uint8_t value);
     uint8_t RB(uint16_t addr);
 
+    /* Instructions and addressing modes ------------------ */
+
     // Enumerations for operations and addressing modes
     enum AddrModes {
         // 6502 Addressing Modes
@@ -64,6 +66,16 @@ private:
 
     // A template for instructions, see 2A03.cc for details
     template<AddrModes, Operations> uint8_t ins();
+
+    /* Interrupts ----------------------------------------- */
+
+    // Flags for interrupt checking, will be checked and reset after
+    //      every instruction
+    bool m_irq_requested, m_nmi_requested;
+
+    // A function to service either an nmi or irq based on the address
+    //      passed indicating where to fetch the handler address
+    void do_interrupt(uint16_t addr);
 
 public:
 
@@ -85,7 +97,5 @@ public:
 
     // Drives the emulation
     uint8_t step();
-
-    // TODO: Instructions and addressing modes
 
 };
