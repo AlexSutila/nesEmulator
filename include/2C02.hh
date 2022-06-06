@@ -17,7 +17,7 @@ struct Ricoh2C02 {
 private:
 
     // Pointer to frame buffer containing pixel data
-    std::shared_ptr<int> m_framebuf;
+    std::shared_ptr<unsigned int[]> m_framebuf;
 
     enum ppuState {
 
@@ -57,6 +57,9 @@ public:
 
     // Used to notify nes.cc to render a frame
     bool m_frameIncompete;
+
+    // Access the frame buffer for rendering
+    std::shared_ptr<unsigned int[]> get_buf();
 
     // Connect components
     void connect_bus(cpu_bus* cpu_bus_ptr);

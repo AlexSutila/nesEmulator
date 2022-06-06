@@ -64,8 +64,11 @@ void nes::run() {
 
         }
 
-        /* Render frame here */
-        m_ppu.m_frameIncompete = false;
+        // Render frame
+        SDL_UpdateTexture(m_texture, nullptr, m_ppu.get_buf().get(), TV_W * sizeof(int));
+        SDL_RenderCopy(m_renderer, m_texture, nullptr, nullptr);
+        SDL_RenderPresent(m_renderer);
+        m_ppu.m_frameIncompete = true;
 
         // Do event poll
         event_poll();

@@ -3,8 +3,12 @@
 Ricoh2C02::Ricoh2C02() {
 
     m_cycle = 0; m_scanline = -1;
-    m_frameIncompete = false;
+    m_frameIncompete = true;
     m_curstate = prerender;
+
+    // Create the frame buffer and clear it
+    m_framebuf = std::shared_ptr<unsigned int[]>(new unsigned int[TV_W * TV_H]);
+    for (int i = 0; i < TV_W * TV_H; i++) m_framebuf[i] = 0;
 
     // Initialize registers
     m_reg_ctrl1      = 0x00;
@@ -17,6 +21,12 @@ Ricoh2C02::Ricoh2C02() {
     m_reg_vram_io    = 0x00;
 
 }
+
+/* Get frame buffer for rendering */
+
+std::shared_ptr<unsigned int[]> Ricoh2C02::get_buf() {
+    return m_framebuf;
+};
 
 /* Bus connections */
 
@@ -40,6 +50,8 @@ uint8_t Ricoh2C02::RB(uint16_t addr) {
 
 /* Step the component one cycle */
 
+#include <stdio.h> // This is temporary, just here to produce the static for the
+                   //       time being to test things - need rand()
 #define OVERFLOW(old, cur) (old > cur)
 void Ricoh2C02::step() {
 
@@ -67,6 +79,13 @@ void Ricoh2C02::step() {
 
         // Rendering
         [](Ricoh2C02& t) {
+
+            static int buf_pos = 0;
+
+            // Generate static at current screen position, obviously this will be replaced
+            //      with actual pixel data when I get to that point so
+            t.m_framebuf[buf_pos] = rand() | 0xFF000000;
+            ++buf_pos %= (TV_W * TV_H);
 
             // Move into HBlank
             if (t.m_cycle == 256) t.m_curstate = hBlank;
