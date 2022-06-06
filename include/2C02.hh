@@ -6,9 +6,18 @@
 struct cpu_bus;
 struct ppu_bus;
 
+
+// Defines screen resolution in pixels
+#define TV_W 256
+#define TV_H 224
+
+
 struct Ricoh2C02 {
 
 private:
+
+    // Pointer to frame buffer containing pixel data
+    std::shared_ptr<int> m_framebuf;
 
     enum ppuState {
 
