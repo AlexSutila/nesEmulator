@@ -3,6 +3,7 @@
 Ricoh2C02::Ricoh2C02() {
 
     m_cycle = 0; m_scanline = -1;
+    m_frameIncompete = false;
     m_curstate = prerender;
 
     // Initialize registers
@@ -88,6 +89,8 @@ void Ricoh2C02::step() {
             if (t.m_scanline == 262) {
                 t.m_curstate = prerender;
                 t.m_scanline = -1;
+                // Render the completed frame
+                t.m_frameIncompete = false;
             }
 
         },

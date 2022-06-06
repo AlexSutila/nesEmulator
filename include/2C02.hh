@@ -55,6 +55,9 @@ public:
 
     Ricoh2C02();
 
+    // Used to notify nes.cc to render a frame
+    bool m_frameIncompete;
+
     // Connect components
     void connect_bus(cpu_bus* cpu_bus_ptr);
     void connect_bus(ppu_bus* ppu_bus_ptr);
