@@ -1,2 +1,2 @@
 all:
-	g++ -o nes main.cc src/*.cc src/cart/*.cc -I include/ -std=c++17
+	g++ -o nes main.cc src/*.cc src/cart/*.cc -I include/ -lSDL2 -std=c++17
