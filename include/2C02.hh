@@ -10,6 +10,19 @@ struct Ricoh2C02 {
 
 private:
 
+    enum ppuState {
+
+        // These are in no particular order, the lookup tables within step
+        //      are depended on this ordering, however ...
+        prerender  , // Single pre render scanline
+        postrender , // Post visible scanline, before VBlank
+        rendering  , // Any visible scanlines while rendering
+        hBlank     , // Any visible scanlines while HBlanking
+        vBlank     , // All VBlanking scanlines
+
+    };
+    ppuState m_curstate;
+
     // Memory mapped IO registers
     uint8_t m_reg_ctrl1;      // Mapped to address 0x2000
     uint8_t m_reg_ctrl2;      // Mapped to address 0x2001
@@ -20,6 +33,9 @@ private:
     uint8_t m_reg_vram_addr2; // Mapped to address 0x2006
     uint8_t m_reg_vram_io;    // Mapped to address 0x2007
 
+    // Keep track of scanline and cycle
+    int m_cycle, m_scanline;
+    
     // A pointer to the PPU busline
     ppu_bus* m_ppu_bus;
 

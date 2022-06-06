@@ -2,6 +2,9 @@
 
 Ricoh2C02::Ricoh2C02() {
 
+    m_cycle = 0; m_scanline = -1;
+    m_curstate = prerender;
+
     // Initialize registers
     m_reg_ctrl1      = 0x00;
     m_reg_ctrl2      = 0x00;
@@ -36,9 +39,77 @@ uint8_t Ricoh2C02::RB(uint16_t addr) {
 
 /* Step the component one cycle */
 
+#define OVERFLOW(old, cur) (old > cur)
 void Ricoh2C02::step() {
-    // TODO
+
+    // Look up table of function pointers which do what the PPU should
+    //      do in its corresponding state. This includes handling next
+    //      state logic.
+    typedef void (*func)(Ricoh2C02&);
+    static const func lookup[5] = {
+
+        // Pre render
+        [](Ricoh2C02& t) {
+
+            // Move into first visible scanline
+            if (t.m_scanline == 0) t.m_curstate = rendering;
+
+        },
+
+        // Post render
+        [](Ricoh2C02& t) {
+
+            // Move into VBlank
+            if (t.m_scanline == 241) t.m_curstate = vBlank;
+
+        },
+
+        // Rendering
+        [](Ricoh2C02& t) {
+
+            // Move into HBlank
+            if (t.m_cycle == 256) t.m_curstate = hBlank;
+
+        },
+
+        // HBlank
+        [](Ricoh2C02& t) {
+
+            // Move into post render or hBlank
+            if (t.m_scanline == 240) t.m_curstate = postrender;
+            else if (t.m_cycle == 0) t.m_curstate = rendering;
+
+        },
+
+        // VBlank
+        [](Ricoh2C02& t) {
+
+            // Move into pre render scanline
+            if (t.m_scanline == 262) {
+                t.m_curstate = prerender;
+                t.m_scanline = -1;
+            }
+
+        },
+
+    };
+
+    const int scanline_length = 341;
+    const int scanline_count  = 261; // There are actually 262, but I'm using -1 for the
+                                     //     pre-render scanline which affects things
+
+    // Keep track of old scanline and cycle to detect wrap arounds
+    int old_cycle = m_cycle, old_scanline = m_scanline;
+
+    // Move things along
+    ++m_cycle %= scanline_length; // Increment cycle, wrap to zero after 340
+    if (OVERFLOW(old_cycle, m_cycle)) ++m_scanline;
+
+    // Do what needs to be done for the current state - handles next state logic too
+    (lookup[m_curstate])(*this);
+    
 }
+#undef OVERFLOW
 
 /* MMIO functions - very subject to change */
 
