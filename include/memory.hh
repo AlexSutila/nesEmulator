@@ -61,6 +61,10 @@ struct ppu_bus {
 
 private:
 
+    // Pointers to PPU memory blocks
+    std::unique_ptr<uint8_t[][0x0400]> m_vram; // Two internal 1KiB name tables
+    std::unique_ptr<uint8_t[]> m_pal; // -------- Two palettes, image and sprite 
+
     // A pointer to the cartridge as the PPU will need to read CHRROM
     Cart* m_cart;
 

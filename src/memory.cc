@@ -154,6 +154,10 @@ void cpu_bus::step() {
 
 ppu_bus::ppu_bus() {
 
+    // Allocate memory for name tables and palettes
+    m_vram = std::make_unique<uint8_t[][0x0400]>(2);
+    m_pal  = std::make_unique<uint8_t[]>(0x20);
+
 }
 
 /* Connect components ------------------------------------- */
@@ -182,7 +186,55 @@ void ppu_bus::WB(uint16_t addr, uint8_t value) {
         m_cart->ppu_WB(addr, value);
     }
 
-    // TODO: Rest of PPU memory map
+    // Name Tables - Address Range 0x2000 - 0x3F00
+    else if (addr >= 0x2000 && addr <= 0x3EFF) {
+
+        ntMirrors::nameTableMirrorMode mode = m_cart->nt_mirror();
+        uint16_t reduced_addr = mirror_nametables(addr);
+
+        switch (mode) {
+
+            case ntMirrors::fourScreen: 
+                // TODO
+                break;
+            
+            case ntMirrors::horizontal:
+                
+                if (reduced_addr == 0x2000 || reduced_addr == 0x2800) {
+                    m_vram[0][reduced_addr & 0x3FF] = value;
+                } else {
+                    m_vram[1][reduced_addr & 0x3FF] = value;
+                } break;
+            
+            case ntMirrors::vertical: 
+                
+                if (reduced_addr == 0x2800 || reduced_addr == 0x2C00) {
+                    m_vram[0][reduced_addr & 0x3FF] = value;
+                } else {
+                    m_vram[1][reduced_addr & 0x3FF] = value;
+                } break;
+            
+            case ntMirrors::singleScreenHi: 
+            
+                m_vram[1][reduced_addr & 0x3FF] = value; 
+                break;
+            
+            case ntMirrors::singleScreenLo: 
+                
+                m_vram[0][reduced_addr & 0x3FF] = value; 
+                break;
+
+        }
+
+    }
+
+    // Palettes - Address range 0x3F00 - 0x4000
+    else if (addr >= 0x3F00 && addr <= 0x3FFF) {
+
+        uint16_t reduced_addr = mirror_palettes(addr);
+        m_pal[reduced_addr] = value;
+
+    }
 
 }
 
@@ -198,6 +250,52 @@ uint8_t ppu_bus::RB(uint16_t addr) {
         return m_cart->ppu_RB(addr);
     }
 
-    // TODO: Rest of PPU memory map
+    // Name Tables - Address Range 0x2000 - 0x3F00
+    else if (addr >= 0x2000 && addr <= 0x3EFF) {
+
+        ntMirrors::nameTableMirrorMode mode = m_cart->nt_mirror();
+        uint16_t reduced_addr = mirror_nametables(addr);
+
+        switch (mode) {
+
+            case ntMirrors::fourScreen: 
+                return 0x00; break; // TODO
+            
+            case ntMirrors::horizontal:
+                
+                if (reduced_addr == 0x2000 || reduced_addr == 0x2800) {
+                    return m_vram[0][reduced_addr & 0x3FF];
+                } else {
+                    return m_vram[1][reduced_addr & 0x3FF];
+                } break;
+            
+            case ntMirrors::vertical: 
+                
+                if (reduced_addr == 0x2800 || reduced_addr == 0x2C00) {
+                    return m_vram[0][reduced_addr & 0x3FF];
+                } else {
+                    return m_vram[1][reduced_addr & 0x3FF];
+                } break;
+            
+            case ntMirrors::singleScreenHi: 
+            
+                return m_vram[1][reduced_addr & 0x3FF]; break;
+            
+            case ntMirrors::singleScreenLo: 
+                
+                return m_vram[0][reduced_addr & 0x3FF]; break;
+
+        }
+
+    }
+
+    // Palettes - Address range 0x3F00 - 0x4000
+    else if (addr >= 0x3F00 && addr <= 0x3FFF) {
+
+        uint16_t reduced_addr = mirror_palettes(addr);
+        return m_pal[reduced_addr];
+
+    }
+
     return 0x00;
 }
