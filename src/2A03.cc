@@ -16,10 +16,22 @@ void Ricoh2A03::connect_bus(cpu_bus* cpu_bus_ptr) {
 /* Memory access to the cpu buslines ---------------------- */
 
 void Ricoh2A03::WB(uint16_t addr, uint8_t value) {
+
+    // Handle break on address write
+    #ifdef DEBUG
+    Debugger::get().do_break(addr, wr);
+    #endif
+
     m_bus->WB(addr, value);
 }
 
 uint8_t Ricoh2A03::RB(uint16_t addr) {
+    
+    // Handle break on address read
+    #ifdef DEBUG
+    Debugger::get().do_break(addr, rd);
+    #endif
+
     return m_bus->RB(addr);
 }
 
@@ -765,6 +777,8 @@ uint8_t Ricoh2A03::step() {
         .reg_pc = m_reg_pc
     };
     Debugger::get().set_cpu_context(ctx); 
+    // Handle execution breakpoints
+    Debugger::get().do_break(m_reg_pc, ex);
     #endif
 
 
