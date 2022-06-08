@@ -16,10 +16,6 @@ struct Ricoh2A03 {
 
 private:
 
-    #ifdef DEBUG_2A03
-    std::ifstream outdump;
-    #endif
-
     // A pointer to the CPU busline
     cpu_bus* m_bus;
 
@@ -79,7 +75,7 @@ private:
 
 public:
 
-    Ricoh2A03(); ~Ricoh2A03();
+    Ricoh2A03();
 
     // Debug utilities
     #ifdef DEBUG_2A03
