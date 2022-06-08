@@ -1,6 +1,7 @@
 #pragma once
 
-#include <curses.h> // Yeaaaah this will be a terminal based debugger
+#include <curses.h>      // Yeaaaah this will be a terminal based debugger
+#include <unordered_map> // For R,W,E breakpoints
 #include <cstdint>
 
 /* 
@@ -11,6 +12,13 @@
 
     It exists SOLEY for convenience
 */
+
+enum BreakpointType {
+    rd, wr, ex
+};
+struct Breakpoint {
+    bool rd, wr, ex;
+};
 
 struct CpuContext {
     // I may add more to this, ... unsure, it all
@@ -32,6 +40,12 @@ struct CpuContext {
     uint16_t reg_pc;
 };
 
+struct PpuContext {
+    // This will almost certainly expand as PPU
+    //      mmio is implemented
+    int cycle, scanline;
+};
+
 class Debugger {
 
 public:
@@ -41,19 +55,26 @@ public:
         return instance;
     }
 
+    void do_break(uint16_t addr, BreakpointType t);
     void do_break();
     void poll();
 
     // For updating component information
     void set_cpu_context(CpuContext& ctx);
+    void set_ppu_context(PpuContext& ctx);
     
     
 private:
 
+    // Component contexts
     CpuContext m_cpu_context;
+    PpuContext m_ppu_context;
+
+    // Read, Write, Execute breakpoints
+    std::unordered_map<uint16_t, Breakpoint> m_breakpoints;
 
     Debugger(); ~Debugger();
     void update_display();
-    bool m_enable = false;
+    bool m_enable = true;
 
 };
