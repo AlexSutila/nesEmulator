@@ -1,6 +1,10 @@
 #include <iostream>
 #include "nes.hh"
 
+#ifdef DEBUG
+#include "debug/debug.hh"
+#endif
+
 nes::nes() {
 
     const char* name   = "DorcelessNESs - nes emulator"; // Window name
@@ -42,6 +46,18 @@ void nes::event_poll() {
                 m_running = false; 
                 break;
 
+            case SDL_KEYDOWN:
+                
+                #ifdef DEBUG // 'Break' stop emu, go to debugger
+                const uint8_t *key_state = SDL_GetKeyboardState(nullptr);
+                if (key_state[SDL_SCANCODE_B]) {
+                    Debugger::get().do_break();
+                }
+                #endif
+                
+                break;
+                
+
         }
     }
 }
@@ -61,6 +77,10 @@ void nes::run() {
             // Catch up remaining components
             for(cycles; cycles > 0; cycles--) 
                 m_cpu_bus.step();
+            
+            #ifdef DEBUG
+            Debugger::get().poll();
+            #endif
 
         }
 
