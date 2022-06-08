@@ -753,6 +753,21 @@ uint8_t Ricoh2A03::step() {
         extra_cycles += 7;
     }
 
+
+    // Update debug info
+    #ifdef DEBUG
+    CpuContext ctx = {
+        .reg_a  = m_reg_a,
+        .reg_x  = m_reg_x,
+        .reg_y  = m_reg_y,
+        .reg_s  = m_reg_s,
+        .reg_p  = m_reg_p,
+        .reg_pc = m_reg_pc
+    };
+    Debugger::get().set_cpu_context(ctx); 
+    #endif
+
+
     // Return the total number of cycles used
     return extra_cycles + cycle_timings[opcode];
 }

@@ -1,7 +1,8 @@
 #pragma once
 
-// Uncomment to enable comparing with execution log
-// #define DEBUG_2A03
+#ifdef DEBUG
+#include "debug/debug.hh"
+#endif
 
 #include <cstdint>
 #include <iostream> // Only used for debugging
