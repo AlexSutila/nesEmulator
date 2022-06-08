@@ -104,7 +104,7 @@ uint8_t cpu_bus::RB(uint16_t addr) {
         // Pull the function from the hash map and if there is a mapping 
         //      jump to the io register read function
         uint8_t(*read_function)(cpu_bus&) = m_io_reads[reduced_addr];
-        if (read_function != nullptr) (*read_function)(*this);
+        if (read_function != nullptr) return (*read_function)(*this);
 
     } 
     

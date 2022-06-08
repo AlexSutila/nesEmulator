@@ -13,7 +13,7 @@ Ricoh2C02::Ricoh2C02() {
     // Initialize registers
     m_reg_ctrl1      = 0x00;
     m_reg_ctrl2      = 0x00;
-    m_reg_status     = 0x00;
+    m_reg_status.raw = 0x00;
     m_reg_spr_addr   = 0x00;
     m_reg_spr_io     = 0x00;
     m_reg_vram_addr1 = 0x00;
@@ -65,7 +65,10 @@ void Ricoh2C02::step() {
         [](Ricoh2C02& t) {
 
             // Move into first visible scanline
-            if (t.m_scanline == 0) t.m_curstate = rendering;
+            if (t.m_scanline == 0) { 
+                t.m_reg_status.vblank_occuring = true;
+                t.m_curstate = rendering;
+            }
 
         },
 
@@ -106,6 +109,7 @@ void Ricoh2C02::step() {
 
             // Move into pre render scanline
             if (t.m_scanline == 262) {
+                t.m_reg_status.vblank_occuring = false;
                 t.m_curstate = prerender;
                 t.m_scanline = -1;
                 // Render the completed frame
@@ -150,10 +154,13 @@ uint8_t Ricoh2C02::ctrl2_r() {
 }
 
 void Ricoh2C02::status_w(uint8_t value) {
-    m_reg_status = value;
+    m_reg_status.raw = value;
 }
 uint8_t Ricoh2C02::status_r() {
-    return m_reg_status;
+    if (m_reg_status.vblank_occuring) {
+        int x = 0;
+    }
+    return m_reg_status.raw;
 }
 
 void Ricoh2C02::spr_addr_w(uint8_t value) {
