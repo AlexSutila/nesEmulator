@@ -44,6 +44,9 @@ bool Cart::load_rom(const std::string& rom_path) {
     if ((m_cart_header.mapper_0 & 0x4) != 0x0) 
         rom_file.seekg(512, rom_file.cur);
 
+    // Assume one page of RAM when this is zero, docs say so 
+    if (m_cart_header.size_prg_ram == 0) ++m_cart_header.size_prg_ram;
+
     // Resize the vectors based on the specifications in the header
     m_prg_rom.resize(0x4000 * (int)m_cart_header.size_prg_rom * sizeof(uint8_t));
     m_chr_rom.resize(0x2000 * (int)m_cart_header.size_chr_rom * sizeof(uint8_t));
