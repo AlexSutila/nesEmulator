@@ -3,14 +3,16 @@
 #include <cart/cart.hh>
 #include "memory.hh"
 
+#ifdef DEBUG
+#include "debug/debug.hh"
+#endif
+
 struct cpu_bus;
 struct ppu_bus;
-
 
 // Defines screen resolution in pixels
 #define TV_W 256
 #define TV_H 224
-
 
 struct Ricoh2C02 {
 
@@ -33,9 +35,40 @@ private:
     ppuState m_curstate;
 
     // Memory mapped IO registers
-    uint8_t m_reg_ctrl1;      // Mapped to address 0x2000
-    uint8_t m_reg_ctrl2;      // Mapped to address 0x2001
-    uint8_t m_reg_status;     // Mapped to address 0x2002
+    union /* Control register 1 */ {
+        uint8_t raw;
+        struct {
+            uint8_t nt_address       : 2;
+            bool    addr_increment   : 1;
+            bool    sprite_pattabl   : 1;
+            bool    bg_pattabl       : 1;
+            bool    sprite_size      : 1;
+            bool    master_slave_sel : 1;
+            bool    nmi_on_vblank    : 1;
+        };
+    } m_reg_ctrl1;            // Mapped to address 0x2000
+    union /* Control register 2 */ {
+        uint8_t raw;
+        struct {
+            bool    color_or_mono : 1;
+            bool    clip_bg       : 1;
+            bool    clip_sprites  : 1;
+            bool    show_bg       : 1;
+            bool    show_spries   : 1;
+            uint8_t bg_color      : 3;
+        };
+    } m_reg_ctrl2;
+    // uint8_t m_reg_ctrl2;      // Mapped to address 0x2001
+    union /* Status register */ {
+        uint8_t raw;
+        struct {
+            uint8_t unused          : 4;
+            bool    wr_vram_ignore  : 1;
+            bool    gt8_sprites     : 1;
+            bool    sprite_0_hit    : 1;
+            bool    vblank_occuring : 1;
+        };
+    } m_reg_status;           // Mapped to address 0x2002
     uint8_t m_reg_spr_addr;   // Mapped to address 0x2003
     uint8_t m_reg_spr_io;     // Mapped to address 0x2004
     uint8_t m_reg_vram_addr1; // Mapped to address 0x2005

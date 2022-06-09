@@ -11,8 +11,8 @@ Ricoh2C02::Ricoh2C02() {
     for (int i = 0; i < TV_W * TV_H; i++) m_framebuf[i] = 0;
 
     // Initialize registers
-    m_reg_ctrl1      = 0x00;
-    m_reg_ctrl2      = 0x00;
+    m_reg_ctrl1.raw  = 0x00;
+    m_reg_ctrl2.raw  = 0x00;
     m_reg_status.raw = 0x00;
     m_reg_spr_addr   = 0x00;
     m_reg_spr_io     = 0x00;
@@ -50,8 +50,6 @@ uint8_t Ricoh2C02::RB(uint16_t addr) {
 
 /* Step the component one cycle */
 
-#include <stdio.h> // This is temporary, just here to produce the static for the
-                   //       time being to test things - need rand()
 #define OVERFLOW(old, cur) (old > cur)
 void Ricoh2C02::step() {
 
@@ -65,10 +63,7 @@ void Ricoh2C02::step() {
         [](Ricoh2C02& t) {
 
             // Move into first visible scanline
-            if (t.m_scanline == 0) { 
-                t.m_reg_status.vblank_occuring = true;
-                t.m_curstate = rendering;
-            }
+            if (t.m_scanline == 0) t.m_curstate = rendering;
 
         },
 
@@ -76,7 +71,11 @@ void Ricoh2C02::step() {
         [](Ricoh2C02& t) {
 
             // Move into VBlank
-            if (t.m_scanline == 241) t.m_curstate = vBlank;
+            if (t.m_scanline == 241) {
+                if (t.m_reg_ctrl1.nmi_on_vblank) t.m_cpu_bus->nmi(); // NMI if $2000 bit 7 set
+                t.m_reg_status.vblank_occuring = true;               // Set bit 7 of $2002
+                t.m_curstate = vBlank;
+            }
 
         },
 
@@ -109,7 +108,6 @@ void Ricoh2C02::step() {
 
             // Move into pre render scanline
             if (t.m_scanline == 262) {
-                t.m_reg_status.vblank_occuring = false;
                 t.m_curstate = prerender;
                 t.m_scanline = -1;
                 // Render the completed frame
@@ -140,27 +138,28 @@ void Ricoh2C02::step() {
 /* MMIO functions - very subject to change */
 
 void Ricoh2C02::ctrl1_w(uint8_t value) {
-    m_reg_ctrl1 = value;
+    m_reg_ctrl1.raw = value;
 }
 uint8_t Ricoh2C02::ctrl1_r() {
-    return m_reg_ctrl1;
+    return m_reg_ctrl1.raw;
 }
 
 void Ricoh2C02::ctrl2_w(uint8_t value) {
-    m_reg_ctrl2 = value;
+    m_reg_ctrl2.raw = value;
 }
 uint8_t Ricoh2C02::ctrl2_r() {
-    return m_reg_ctrl2;
+    return m_reg_ctrl2.raw;
 }
 
 void Ricoh2C02::status_w(uint8_t value) {
-    m_reg_status.raw = value;
+    // Unused bits read the values last written to them supposedly
+    //      the other bits should be read only I would think
+    m_reg_status.unused = value & 0x0F;
 }
 uint8_t Ricoh2C02::status_r() {
-    if (m_reg_status.vblank_occuring) {
-        int x = 0;
-    }
-    return m_reg_status.raw;
+    uint8_t ret_val = m_reg_status.raw;
+    m_reg_status.vblank_occuring = false; // Reset upon read
+    return ret_val;
 }
 
 void Ricoh2C02::spr_addr_w(uint8_t value) {
