@@ -85,6 +85,12 @@ void Ricoh2A03::do_interrupt(uint16_t addr) {
     m_reg_pc  = RB(addr++);
     m_reg_pc |= (RB(addr) << 8);
 
+    // Do execution breakpoint, debugger will skip over any
+    //      address at this point if it is not checked here
+    #ifdef DEBUG
+    Debugger::get().do_break(m_reg_pc, ex);
+    #endif
+
 }
 
 /* Drives the emulation ----------------------------------- */
@@ -738,18 +744,13 @@ uint8_t Ricoh2A03::step() {
 	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
     };
 
+    uint8_t extra_cycles = 0;
 
-    // Read an opcode and execute the corresponding instruction, keep
-    //      track of any extra cycles used
-    uint8_t opcode = RB(m_reg_pc++);
-    uint8_t extra_cycles = (this->*lookup[opcode])();
-
-
-    // Handle interrupts and add any additional cycles used to service
-    //      them if they are triggered
+    // Check if an interrupt was request was made during the last sync period
+    //      and add any additional cycles used to service it
     if (m_nmi_requested) {
         
-        do_interrupt(0xFFFE); // FFFE is where the jump addr is fetched from
+        do_interrupt(0xFFFA); 
 
         // assuming both irq and nmi are pending after an instruction, nmi
         //      takes priority and irq is forgotten
@@ -759,12 +760,16 @@ uint8_t Ricoh2A03::step() {
     }
     if (m_irq_requested) {
 
-        do_interrupt(0xFFFA); // FFFA is where the jump addr is fetched from
+        do_interrupt(0xFFFE); 
 
         m_irq_requested = false;
         extra_cycles += 7;
     }
 
+    // Read an opcode and execute the corresponding instruction, add
+    //      any extra cycles consumed during instruction execution
+    uint8_t opcode = RB(m_reg_pc++);
+    extra_cycles += (this->*lookup[opcode])();
 
     // Update debug info
     #ifdef DEBUG
@@ -780,7 +785,6 @@ uint8_t Ricoh2A03::step() {
     // Handle execution breakpoints
     Debugger::get().do_break(m_reg_pc, ex);
     #endif
-
 
     // Return the total number of cycles used
     return extra_cycles + cycle_timings[opcode];
