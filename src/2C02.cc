@@ -38,7 +38,11 @@ Ricoh2C02::Ricoh2C02() {
     m_reg_status.raw = 0x00;
     m_reg_spr_addr   = 0x00;
     m_reg_spr_io     = 0x00;
-    m_reg_vram_addr1 = 0x00;
+
+    // Initialize scroll latch
+    m_scroll_latch.state   = m_scroll_latch.xByte;
+    m_scroll_latch.scrollX = 0x00;
+    m_scroll_latch.scrollY = 0x00;
 
     // Initialize address latch
     m_addr_latch.state = m_addr_latch.hiByte;
@@ -205,10 +209,22 @@ uint8_t Ricoh2C02::spr_io_r() {
 
 void Ricoh2C02::vram_addr1_w(uint8_t value) {
     m_reg_status.unused = (value & 0x0F);
-    m_reg_vram_addr1 = value;
+
+    if (m_scroll_latch.state == m_scroll_latch.xByte) {
+        m_scroll_latch.scrollX = value;
+        m_scroll_latch.state = m_scroll_latch.yByte;
+
+    } else /* m_scroll_latch.state == yByte */ {
+        m_scroll_latch.scrollY = value;
+        m_scroll_latch.state = m_scroll_latch.xByte;
+    }
+    
 }
 uint8_t Ricoh2C02::vram_addr1_r() {
-    return m_reg_vram_addr1;
+    
+    return 0x00; // Not typically read, don't know how to handle this yet
+                 //     or if it even matters in the first place
+
 }
 
 void Ricoh2C02::vram_addr2_w(uint8_t value) {

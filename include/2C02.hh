@@ -71,7 +71,13 @@ private:
     } m_reg_status;           // Mapped to address 0x2002
     uint8_t m_reg_spr_addr;   // Mapped to address 0x2003
     uint8_t m_reg_spr_io;     // Mapped to address 0x2004
-    uint8_t m_reg_vram_addr1; // Mapped to address 0x2005
+    struct {                  // Helper struct for MMIO 0x2005
+        enum LatchState {
+            xByte, yByte
+        };
+        LatchState state;
+        uint8_t scrollX, scrollY;
+    } m_scroll_latch;
     struct {                  // Helper struct for MMIO 0x2006 and 0x2007
         enum LatchState {
             loByte, hiByte
