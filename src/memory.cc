@@ -200,17 +200,17 @@ void ppu_bus::WB(uint16_t addr, uint8_t value) {
             
             case ntMirrors::horizontal:
                 
-                if (reduced_addr == 0x2000 || reduced_addr == 0x2800) {
+                if ((reduced_addr & 0xFC00) == 0x2000 || (reduced_addr & 0xFC00) == 0x2400) {
                     m_vram[0][reduced_addr & 0x3FF] = value;
-                } else {
+                } else /* reduced_addr & 0xFC00 is 0x2800 or 0x2C00 */ {
                     m_vram[1][reduced_addr & 0x3FF] = value;
                 } break;
             
             case ntMirrors::vertical: 
                 
-                if (reduced_addr == 0x2800 || reduced_addr == 0x2C00) {
+                if ((reduced_addr & 0xFC00) == 0x2000 || (reduced_addr & 0xFC00) == 0x2800) {
                     m_vram[0][reduced_addr & 0x3FF] = value;
-                } else {
+                } else /* reduced_addr & 0xFC00 is 0x2400 or 0x2C00 */ {
                     m_vram[1][reduced_addr & 0x3FF] = value;
                 } break;
             
@@ -263,17 +263,17 @@ uint8_t ppu_bus::RB(uint16_t addr) {
             
             case ntMirrors::horizontal:
                 
-                if (reduced_addr == 0x2000 || reduced_addr == 0x2800) {
+                if ((reduced_addr & 0xFC00) == 0x2000 || (reduced_addr & 0xFC00) == 0x2400) {
                     return m_vram[0][reduced_addr & 0x3FF];
-                } else {
+                } else /* reduced_addr & 0xFC00 is 0x2800 or 0x2C00 */ {
                     return m_vram[1][reduced_addr & 0x3FF];
                 } break;
             
             case ntMirrors::vertical: 
                 
-                if (reduced_addr == 0x2800 || reduced_addr == 0x2C00) {
+                if ((reduced_addr & 0xFC00) == 0x2000 || (reduced_addr & 0xFC00) == 0x2800) {
                     return m_vram[0][reduced_addr & 0x3FF];
-                } else {
+                } else /* reduced_addr & 0xFC00 is 0x2400 or 0x2C00 */ {
                     return m_vram[1][reduced_addr & 0x3FF];
                 } break;
             
