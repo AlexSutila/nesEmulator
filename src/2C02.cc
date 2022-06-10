@@ -17,8 +17,11 @@ Ricoh2C02::Ricoh2C02() {
     m_reg_spr_addr   = 0x00;
     m_reg_spr_io     = 0x00;
     m_reg_vram_addr1 = 0x00;
-    m_reg_vram_addr2 = 0x00;
-    m_reg_vram_io    = 0x00;
+
+    // Initialize address latch
+    m_addr_latch.state = m_addr_latch.hiByte;
+    m_addr_latch.addr  = 0x0000;
+    m_addr_latch.ibuf  = 0x00;
 
 }
 
@@ -184,15 +187,56 @@ uint8_t Ricoh2C02::vram_addr1_r() {
 }
 
 void Ricoh2C02::vram_addr2_w(uint8_t value) {
-    m_reg_vram_addr2 = value;
+
+    if (m_addr_latch.state == m_addr_latch.hiByte) {
+        m_addr_latch.addr  = (m_addr_latch.addr & 0x00FF) | (value << 8);
+        m_addr_latch.state = m_addr_latch.loByte;
+    
+    } else /* m_addr_latch.state == loByte */ {
+        m_addr_latch.addr  = (m_addr_latch.addr & 0xFF00) | value;
+        m_addr_latch.state = m_addr_latch.hiByte;
+    }
+
 }
 uint8_t Ricoh2C02::vram_addr2_r() {
-    return m_reg_vram_addr2;
+    
+    return 0x00; // Not typically read, don't know how to handle this yet
+                 //     or if it even matters in the first place
+
 }
 
 void Ricoh2C02::vram_io_w(uint8_t value) {
-    m_reg_vram_io = value;
+
+    uint16_t inc = m_reg_ctrl1.addr_increment ? 32 : 1 , 
+        old_addr = m_addr_latch.addr;
+    m_addr_latch.addr += inc; // Writes increment this address
+    
+    // Set data at address pre-increment
+    WB(old_addr, value);
+
 }
 uint8_t Ricoh2C02::vram_io_r() {
-    return m_reg_vram_io;
+
+    uint16_t inc = m_reg_ctrl1.addr_increment ? 32 : 1 ,
+        old_addr = m_addr_latch.addr;
+    m_addr_latch.addr += inc; // Reads also increment this address
+
+    if (old_addr <= 0x3EFF) /* Internal buffer delayed */ {
+        uint8_t data = m_addr_latch.ibuf;
+        m_addr_latch.ibuf = RB(old_addr);
+        return data;
+    }
+    
+    else /* No buffering but buffer is still updated */ {
+        // TODO: Verify I'm reading the new internal buffer value from
+        //      the correct address. Docs say it comes from the 'nametable 
+        //      underneath', and this should read nametable data, what I'm 
+        //      doing here is entirely guess work sooooooooo. 
+        //      ...
+        // Rational - clearing bit 8 places address in nametable region
+        m_addr_latch.ibuf = RB(old_addr & 0x3EFF);
+        // Desired data is placed on the bus immediately, no read priming
+        return RB(old_addr);
+    }
+
 }

@@ -72,8 +72,14 @@ private:
     uint8_t m_reg_spr_addr;   // Mapped to address 0x2003
     uint8_t m_reg_spr_io;     // Mapped to address 0x2004
     uint8_t m_reg_vram_addr1; // Mapped to address 0x2005
-    uint8_t m_reg_vram_addr2; // Mapped to address 0x2006
-    uint8_t m_reg_vram_io;    // Mapped to address 0x2007
+    struct {                  // Helper struct for MMIO 0x2006 and 0x2007
+        enum LatchState {
+            loByte, hiByte
+        };
+        LatchState state;
+        uint16_t   addr;
+        uint8_t    ibuf; // Shorthand for internal buffer
+    } m_addr_latch;
 
     // Keep track of scanline and cycle
     int m_cycle, m_scanline;
