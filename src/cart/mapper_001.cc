@@ -99,7 +99,7 @@ uint8_t Mapper_001::cpu_RB(uint16_t addr) {
         if ((m_reg_ctrl.prgBankMode == 0) || (m_reg_ctrl.prgBankMode == 1)) {
 
             // Higher bank value is ignored
-            return m_cart->get_PRG_ROM()[(addr & 0x7FFF) + (0x8000 * m_chr_bank0)];
+            return m_cart->get_PRG_ROM()[(addr & 0x7FFF) + (0x8000 * m_prg_bank0)];
 
         }
 
