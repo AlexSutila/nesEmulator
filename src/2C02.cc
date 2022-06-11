@@ -113,12 +113,38 @@ void Ricoh2C02::step() {
         // Rendering
         [](Ricoh2C02& t) {
 
+            uint16_t const attrBaseAddress = 0x0000;
+            uint16_t const ntsBaseAddress   = 0x2000;
+
+            static const int nametableRows  = 32;
+            static const int tileSizePixels = 8;
+            static const int tileSizeBytes  = 16;
+
             static int buf_pos = 0;
 
-            // Generate static at current screen position, obviously this will be replaced
-            //      with actual pixel data when I get to that point so
-            t.m_framebuf[buf_pos] = rand() | 0xFF000000;
-            ++buf_pos %= (TV_W * TV_H);
+            // Render a single pixel
+            int tile_y = t.m_scanline / tileSizePixels, mod_y = t.m_scanline % tileSizePixels;
+            int tile_x = t.m_cycle    / tileSizePixels, mod_x = t.m_cycle    % tileSizePixels;
+
+            uint16_t bgPatTableAddr = t.m_reg_ctrl1.bg_pattabl ? 0x1000 : 0x0000;
+
+            // Obtain the tile index from the name table and calculate the base address
+            uint16_t tileIndex    = t.RB(ntsBaseAddress + tile_x + (tile_y * nametableRows));
+            uint16_t tileBaseAddr = (tileIndex * tileSizeBytes) + bgPatTableAddr;
+
+            // Read the actual tile data bytes and extract the color index
+            uint8_t tileDataLo = t.RB(tileBaseAddr + mod_y + 0),
+                    tileDataHi = t.RB(tileBaseAddr + mod_y + 8);
+            uint8_t colorIndex = ((tileDataLo >> (7 - mod_x)) & 1) | (((tileDataHi >> (7 - mod_x)) & 1) << 1);
+
+            switch (colorIndex) {
+                case 0: t.m_framebuf[buf_pos] = 0xFF000000; break; // This is temporary just to be able to better observe
+                case 1: t.m_framebuf[buf_pos] = 0xFF333333; break; //       what is actually going on
+                case 2: t.m_framebuf[buf_pos] = 0xFFAAAAAA; break;
+                case 3: t.m_framebuf[buf_pos] = 0xFFFFFFFF; break;
+            }
+
+            ++buf_pos %= (TV_W * 240);
 
             // Move into HBlank
             if (t.m_cycle == 256) t.m_curstate = hBlank;
