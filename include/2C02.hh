@@ -34,6 +34,13 @@ private:
     };
     ppuState m_curstate;
 
+    // Representation of internal data bus used for CPU communication, writes fill this "latch"
+    //      and bits read also fill the latch with the bits read. Reading write only bits will
+    //      read the corresponding latch bits, how ever these latch bits do decay over time.
+    //      ...
+    // I will not emulate this decay, I don't expect games will rely on this behavior
+    uint8_t m_io_db;
+
     // Memory mapped IO registers
     union /* Control register 1 */ {
         uint8_t raw;
@@ -119,13 +126,17 @@ public:
 
     /* MMIO functions ------------------------------------- */
 
-    void      ctrl1_w(uint8_t value); uint8_t      ctrl1_r(); // Mapped to address 0x2000
-    void      ctrl2_w(uint8_t value); uint8_t      ctrl2_r(); // Mapped to address 0x2001
+    uint8_t open_bus_r(); // Some registers are wr_only, and reading from them results in
+                          //    reading from open bus. This function cuts code repetition
+                          //    because this happens for multiple addresses ... see below
+
+    void      ctrl1_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2000
+    void      ctrl2_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2001
     void     status_w(uint8_t value); uint8_t     status_r(); // Mapped to address 0x2002
     void   spr_addr_w(uint8_t value); uint8_t   spr_addr_r(); // Mapped to address 0x2003
     void     spr_io_w(uint8_t value); uint8_t     spr_io_r(); // Mapped to address 0x2004
-    void vram_addr1_w(uint8_t value); uint8_t vram_addr1_r(); // Mapped to address 0x2005
-    void vram_addr2_w(uint8_t value); uint8_t vram_addr2_r(); // Mapped to address 0x2006
+    void vram_addr1_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2005
+    void vram_addr2_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2006
     void    vram_io_w(uint8_t value); uint8_t    vram_io_r(); // Mapped to address 0x2007
 
 };

@@ -27,10 +27,10 @@ void cpu_bus::connect_ppu(Ricoh2C02* ppu_ptr) {
     
     //                                                ctrl1 - Mapped to memory address 0x2000
     m_io_writes[0x2000] = [](cpu_bus& t, uint8_t value) { t.m_ppu->ctrl1_w(value); };
-     m_io_reads[0x2000] = [](cpu_bus& t) { return t.m_ppu->ctrl1_r(); };
+     m_io_reads[0x2000] = [](cpu_bus& t) { return t.m_ppu->open_bus_r(); };
     //                                                crtl2 - Mapped to memory address 0x2001
     m_io_writes[0x2001] = [](cpu_bus& t, uint8_t value) { t.m_ppu->ctrl2_w(value); };
-     m_io_reads[0x2001] = [](cpu_bus& t) { return t.m_ppu->ctrl2_r(); };
+     m_io_reads[0x2001] = [](cpu_bus& t) { return t.m_ppu->open_bus_r(); };
     //                                               status - Mapped to memory address 0x2002
     m_io_writes[0x2002] = [](cpu_bus& t, uint8_t value) { t.m_ppu->status_w(value); };
      m_io_reads[0x2002] = [](cpu_bus& t) { return t.m_ppu->status_r(); };
@@ -42,10 +42,10 @@ void cpu_bus::connect_ppu(Ricoh2C02* ppu_ptr) {
      m_io_reads[0x2004] = [](cpu_bus& t) { return t.m_ppu->spr_io_r(); };
     //                                           vram_addr1 - Mapped to memory address 0x2005
     m_io_writes[0x2005] = [](cpu_bus& t, uint8_t value) { t.m_ppu->vram_addr1_w(value); };
-     m_io_reads[0x2005] = [](cpu_bus& t) { return t.m_ppu->vram_addr1_r(); };
+     m_io_reads[0x2005] = [](cpu_bus& t) { return t.m_ppu->open_bus_r(); };
     //                                           vram_addr2 - Mapped to memory address 0x2006
     m_io_writes[0x2006] = [](cpu_bus& t, uint8_t value) { t.m_ppu->vram_addr2_w(value); };
-     m_io_reads[0x2006] = [](cpu_bus& t) { return t.m_ppu->vram_addr2_r(); };
+     m_io_reads[0x2006] = [](cpu_bus& t) { return t.m_ppu->open_bus_r(); };
     //                                              vram_io - Mapped to memory address 0x2007
     m_io_writes[0x2007] = [](cpu_bus& t, uint8_t value) { t.m_ppu->vram_io_w(value); };
      m_io_reads[0x2007] = [](cpu_bus& t) { return t.m_ppu->vram_io_r(); };

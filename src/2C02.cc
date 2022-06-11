@@ -32,6 +32,8 @@ Ricoh2C02::Ricoh2C02() {
     m_framebuf = std::shared_ptr<unsigned int[]>(new unsigned int[TV_W * TV_H]);
     for (int i = 0; i < TV_W * TV_H; i++) m_framebuf[i] = 0;
 
+    m_io_db = 0x00;
+
     // Initialize registers
     m_reg_ctrl1.raw  = 0x00;
     m_reg_ctrl2.raw  = 0x00;
@@ -164,51 +166,68 @@ void Ricoh2C02::step() {
 }
 #undef OVERFLOW
 
-/* MMIO functions - very subject to change */
+
+
+/* MMIO functions ----------------------------------------- */
+
+// For write only registers
+uint8_t Ricoh2C02::open_bus_r() {
+
+    // This is specificly for write only registers, attempting to read will read
+    //      the current bits stored in the latch ...
+    // Again, I am not about to emulate data degredation so assume no bit decay
+    return m_io_db;
+
+}
+
 
 void Ricoh2C02::ctrl1_w(uint8_t value) {
-    m_reg_status.unused = (value & 0x0F);
     m_reg_ctrl1.raw = value;
+    m_io_db         = value; // Update data latch
 }
-uint8_t Ricoh2C02::ctrl1_r() {
-    return m_reg_ctrl1.raw;
-}
+/* This register is write only - call open bus for read */
+
 
 void Ricoh2C02::ctrl2_w(uint8_t value) {
-    m_reg_status.unused = (value & 0x0F);
     m_reg_ctrl2.raw = value;
+    m_io_db         = value; // Update data latch
 }
-uint8_t Ricoh2C02::ctrl2_r() {
-    return m_reg_ctrl2.raw;
-}
+/* This register is write only - call open bus for read */
+
 
 void Ricoh2C02::status_w(uint8_t value) {
-    m_reg_status.unused = (value & 0x0F);
+    // This register is read only, but the bits written
+    //      are still filled in the latch
+    m_io_db = value;
 }
 uint8_t Ricoh2C02::status_r() {
-    uint8_t ret_val = m_reg_status.raw;
+    // Here, only a few bits return stale bus data, docs slightly
+    //      conflict about bit 4 ------------- TODO: confirmation
+    m_io_db = (m_reg_status.raw & 0xF0) | (m_io_db & 0x0F);
     m_reg_status.vblank_occuring = false; // Reset upon read
-    return ret_val;
+    return m_io_db;
 }
 
+
 void Ricoh2C02::spr_addr_w(uint8_t value) {
-    m_reg_status.unused = (value & 0x0F);
     m_reg_spr_addr = value;
+    m_io_db        = value; // Update data latch
 }
 uint8_t Ricoh2C02::spr_addr_r() {
     return m_reg_spr_addr;
 }
 
+
 void Ricoh2C02::spr_io_w(uint8_t value) {
-    m_reg_status.unused = (value & 0x0F);
     m_reg_spr_io = value;
+    m_io_db      = value; // Update data latch
 }
 uint8_t Ricoh2C02::spr_io_r() {
     return m_reg_spr_io;
 }
 
+
 void Ricoh2C02::vram_addr1_w(uint8_t value) {
-    m_reg_status.unused = (value & 0x0F);
 
     if (m_scroll_latch.state == m_scroll_latch.xByte) {
         m_scroll_latch.scrollX = value;
@@ -219,16 +238,12 @@ void Ricoh2C02::vram_addr1_w(uint8_t value) {
         m_scroll_latch.state = m_scroll_latch.xByte;
     }
     
+    m_io_db = value; // Update data latch
 }
-uint8_t Ricoh2C02::vram_addr1_r() {
-    
-    return 0x00; // Not typically read, don't know how to handle this yet
-                 //     or if it even matters in the first place
+/* This register is write only - call open bus for read */
 
-}
 
 void Ricoh2C02::vram_addr2_w(uint8_t value) {
-    m_reg_status.unused = (value & 0x0F);
 
     if (m_addr_latch.state == m_addr_latch.hiByte) {
         m_addr_latch.addr  = (m_addr_latch.addr & 0x00FF) | (value << 8);
@@ -239,16 +254,12 @@ void Ricoh2C02::vram_addr2_w(uint8_t value) {
         m_addr_latch.state = m_addr_latch.hiByte;
     }
 
+    m_io_db = value; // Update data latch
 }
-uint8_t Ricoh2C02::vram_addr2_r() {
-    
-    return 0x00; // Not typically read, don't know how to handle this yet
-                 //     or if it even matters in the first place
+/* This register is write only - call open bus for read */
 
-}
 
 void Ricoh2C02::vram_io_w(uint8_t value) {
-    m_reg_status.unused = (value & 0x0F);
 
     uint16_t inc = m_reg_ctrl1.addr_increment ? 32 : 1 , 
         old_addr = m_addr_latch.addr;
@@ -257,6 +268,7 @@ void Ricoh2C02::vram_io_w(uint8_t value) {
     // Set data at address pre-increment
     WB(old_addr, value);
 
+    m_io_db = value; // Update data latch
 }
 uint8_t Ricoh2C02::vram_io_r() {
 
@@ -283,3 +295,4 @@ uint8_t Ricoh2C02::vram_io_r() {
     }
 
 }
+
