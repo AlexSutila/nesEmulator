@@ -12,7 +12,7 @@ struct ppu_bus;
 
 // Defines screen resolution in pixels
 #define TV_W 256
-#define TV_H 224
+#define TV_H 240
 
 struct Ricoh2C02 {
 

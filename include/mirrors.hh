@@ -40,7 +40,9 @@ namespace AddressMirrors {
 
         // Address range 0x3F00 - 0x4000
         inline uint16_t mirror_palettes(uint16_t addr) {
-            return (addr % 0x20) | 0x3F00;
+            uint16_t temp = (addr % 0x20) | 0x3F00;
+            // Also need to mirror the background byte a few times
+            return (temp % 4 == 0) ? 0x3F00 : temp;
         }
 
         /* The next function should be called for every address read or written

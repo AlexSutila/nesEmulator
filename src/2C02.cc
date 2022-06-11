@@ -2,22 +2,22 @@
 
 static const unsigned int g_pal_data[64] = {
     /* Physical color palette in ARGB888 format */
-    0xFF757575, 0xFF271B8F, 0xFF0000AB, 0xFF47009F, 
-    0xFF8F0077, 0xFFAB0013, 0xFFA70000, 0xFF7F0B00, 
-    0xFF432F00, 0xFF004700, 0xFF005100, 0xFF003F17, 
-    0xFF1B3F5F, 0xFF000000, 0xFF000000, 0xFF000000, 
-    0xFFBCBCBC, 0xFF0073EF, 0xFF233BEF, 0xFF8300F3, 
-    0xFFBF00BF, 0xFFE7005B, 0xFFDB2B00, 0xFFCB4F0F, 
-    0xFF8B7300, 0xFF009700, 0xFF00AB00, 0xFF00933B, 
-    0xFF00838B, 0xFF000000, 0xFF000000, 0xFF000000, 
-    0xFFFFFFFF, 0xFF3FBFFF, 0xFF5F97FF, 0xFFA78BFD, 
-    0xFFF77BFF, 0xFFFF77B7, 0xFFFF7763, 0xFFFF9B3B, 
-    0xFFF3BF3F, 0xFF83D313, 0xFF4FDF4B, 0xFF58F898, 
-    0xFF00EBDB, 0xFF000000, 0xFF000000, 0xFF000000, 
-    0xFFFFFFFF, 0xFFABE7FF, 0xFFC7D7FF, 0xFFD7CBFF, 
-    0xFFFFC7FF, 0xFFFFC7DB, 0xFFFFBFB3, 0xFFFFDBAB, 
-    0xFFFFE7A3, 0xFFE3FFA3, 0xFFABF3BF, 0xFFB3FFCF, 
-    0xFF9FFFF3, 0xFF000000, 0xFF000000, 0xFF000000, 
+    0xFF575757, 0xFF8F1B27, 0xFFAB0000, 0xFF9F0047, 
+    0xFF07F078, 0xFF1300AB, 0xFF0000A7, 0xFF000B7F, 
+    0xFFF03204, 0xFF004700, 0xFF005100, 0xFF173F00, 
+    0xFFF5B3F1, 0xFF000000, 0xFF000000, 0xFF000000, 
+    0xFFCBCBCB, 0xFFEF7300, 0xFFEF3B23, 0xFFF30083, 
+    0xFF0BF0FB, 0xFF5B00E7, 0xFF002BDB, 0xFF0F4FCB, 
+    0xFF30B708, 0xFF009700, 0xFF00AB00, 0xFF3B9300, 
+    0xFF3808B0, 0xFF000000, 0xFF000000, 0xFF000000, 
+    0xFFFFFFFF, 0xFFFFBF3F, 0xFFFF975F, 0xFFFD8BA7, 
+    0xFFBF77FF, 0xFFB777FF, 0xFF6377FF, 0xFF3B9BFF, 
+    0xFFF33BFF, 0xFF13D383, 0xFF4BDF4F, 0xFF98F858, 
+    0xFFBD0EB0, 0xFF000000, 0xFF000000, 0xFF000000, 
+    0xFFFFFFFF, 0xFFFFE7AB, 0xFFFFD7C7, 0xFFFFCBD7, 
+    0xFF7FFCFF, 0xFFDBC7FF, 0xFFB3BFFF, 0xFFABDBFF, 
+    0xFF7AFE3F, 0xFFA3FFE3, 0xFFBFF3AB, 0xFFCFFFB3, 
+    0xFFFFFF39, 0xFF000000, 0xFF000000, 0xFF000000, 
 };
 
 /* -------------------------------------------------------- */
@@ -113,38 +113,45 @@ void Ricoh2C02::step() {
         // Rendering
         [](Ricoh2C02& t) {
 
-            uint16_t const attrBaseAddress = 0x0000;
-            uint16_t const ntsBaseAddress   = 0x2000;
+            const uint16_t ntsBaseAddress  = 0x2000;
+            const uint16_t attrMemOffset   = 0x03C0;
+            const uint16_t iPalBaseAddress = 0x3F00;
 
-            static const int nametableRows  = 32;
-            static const int tileSizePixels = 8;
-            static const int tileSizeBytes  = 16;
+            const int nametableRows  = 32;
+            const int tileSizePixels = 8;
+            const int tileSizeBytes  = 16;
 
             static int buf_pos = 0;
 
-            // Render a single pixel
+            /* Render a single pixel */
+
+            // Do some tile position calculations
             int tile_y = t.m_scanline / tileSizePixels, mod_y = t.m_scanline % tileSizePixels;
             int tile_x = t.m_cycle    / tileSizePixels, mod_x = t.m_cycle    % tileSizePixels;
 
+            // Calculate base addresses determined by control register bits
             uint16_t bgPatTableAddr = t.m_reg_ctrl1.bg_pattabl ? 0x1000 : 0x0000;
 
-            // Obtain the tile index from the name table and calculate the base address
+            // Obtain the tile index and attribute byte from the name table, also calculate tile base address
             uint16_t tileIndex    = t.RB(ntsBaseAddress + tile_x + (tile_y * nametableRows));
-            uint16_t tileBaseAddr = (tileIndex * tileSizeBytes) + bgPatTableAddr;
+            uint16_t tileBaseAddr = (tileIndex * tileSizeBytes) + bgPatTableAddr; // In pattern memory
+            uint16_t attrBaseAddr = ntsBaseAddress + attrMemOffset + ((tile_x / 4) + ((tile_y / 4) * 8));
 
-            // Read the actual tile data bytes and extract the color index
-            uint8_t tileDataLo = t.RB(tileBaseAddr + mod_y + 0),
-                    tileDataHi = t.RB(tileBaseAddr + mod_y + 8);
+            // Read the actual tile data bytes and extract the low bits of the color index
+            uint8_t tileDataLo = t.RB(tileBaseAddr + mod_y + 0), tileDataHi = t.RB(tileBaseAddr + mod_y + 8);
             uint8_t colorIndex = ((tileDataLo >> (7 - mod_x)) & 1) | (((tileDataHi >> (7 - mod_x)) & 1) << 1);
 
-            switch (colorIndex) {
-                case 0: t.m_framebuf[buf_pos] = 0xFF000000; break; // This is temporary just to be able to better observe
-                case 1: t.m_framebuf[buf_pos] = 0xFF333333; break; //       what is actually going on
-                case 2: t.m_framebuf[buf_pos] = 0xFFAAAAAA; break;
-                case 3: t.m_framebuf[buf_pos] = 0xFFFFFFFF; break;
+            // Extract the high bits of the color index
+            switch (((tile_x / 2) % 2) + (((tile_y / 2) % 2) * 2)) {
+                case 0: colorIndex |= (t.RB(attrBaseAddr) & 0x03) << 2; break;
+                case 1: colorIndex |= (t.RB(attrBaseAddr) & 0x0C) << 0; break;
+                case 2: colorIndex |= (t.RB(attrBaseAddr) & 0x30) >> 2; break;
+                case 3: colorIndex |= (t.RB(attrBaseAddr) & 0xC0) >> 4; break;
             }
 
-            ++buf_pos %= (TV_W * 240);
+            // Write the color at the color index to the frame buffer, and move the buffer index along
+            t.m_framebuf[buf_pos] = g_pal_data[t.RB(iPalBaseAddress + colorIndex)];
+            ++buf_pos %= (TV_W * TV_H);
 
             // Move into HBlank
             if (t.m_cycle == 256) t.m_curstate = hBlank;
