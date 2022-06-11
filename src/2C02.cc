@@ -154,7 +154,7 @@ void Ricoh2C02::step() {
             ++buf_pos %= (TV_W * TV_H);
 
             // Move into HBlank
-            if (t.m_cycle == 256) t.m_curstate = hBlank;
+            if (t.m_cycle == TV_W) t.m_curstate = hBlank;
 
         },
 
