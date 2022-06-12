@@ -5,6 +5,7 @@
 
 #ifdef DEBUG
 #include "debug/debug.hh"
+#include <fstream>
 #endif
 
 struct cpu_bus;

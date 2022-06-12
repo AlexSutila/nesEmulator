@@ -57,6 +57,11 @@ void Debugger::poll() {
                     if (in[1] & 0x4) brk.ex = true;
                     m_breakpoints[addr] = brk;
                 } break;
+            case 'd': {
+                    // Dump the contents of the CPU and PPU bus. Note, I don't do all
+                    //      16 kb of the PPU bus because its mirrored
+                    m_dump_ppu_bus = true;
+                } break;
         }
 
     }
@@ -69,8 +74,6 @@ void Debugger::update_display() {
 
     clear(); 
 
-    printw("CART ------------------------------------------------------------------------------------------------\n");
-    
     printw("CPU -------------------------------------------------------------------------------------------------\n");
 
     // Print CPU registers

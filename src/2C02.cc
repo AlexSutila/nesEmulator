@@ -197,6 +197,26 @@ void Ricoh2C02::step() {
 
     // Do what needs to be done for the current state - handles next state logic too
     (lookup[m_curstate])(*this);
+
+    // Update debug info
+    #ifdef DEBUG
+    PpuContext ctx = {
+        .cycle    = m_cycle    ,
+        .scanline = m_scanline ,
+    };
+    Debugger::get().set_ppu_context(ctx);
+    // Check if a bus dump has been invoked, if so dump the ppu bus contents
+    if (Debugger::get().m_dump_ppu_bus) {
+        /* This dumps every single byte into a file, I will also write multiple visualisers
+                of this data in the testing directory in case I ever need it */
+        std::ofstream outfile;
+        outfile.open("testing/dumps/ppubusdump.txt", std::ios::out | std::ios::binary);
+        for (int i = 0x0000; i <= 0x3FFF; i++) outfile << RB(i);
+        outfile.close();
+        // Set this to false so it doesn't generate upon every step
+        Debugger::get().m_dump_ppu_bus = false;
+    }
+    #endif
     
 }
 #undef OVERFLOW

@@ -63,6 +63,9 @@ public:
     void set_cpu_context(CpuContext& ctx);
     void set_ppu_context(PpuContext& ctx);
     
+    // Flags to invoke bus dumps
+    bool m_dump_ppu_bus = false;
+
     
 private:
 
