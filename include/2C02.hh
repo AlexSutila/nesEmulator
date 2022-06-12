@@ -64,8 +64,7 @@ private:
             bool    show_spries   : 1;
             uint8_t bg_color      : 3;
         };
-    } m_reg_ctrl2;
-    // uint8_t m_reg_ctrl2;      // Mapped to address 0x2001
+    } m_reg_ctrl2;            // Mapped to address 0x2001
     union /* Status register */ {
         uint8_t raw;
         struct {
@@ -76,8 +75,11 @@ private:
             bool    vblank_occuring : 1;
         };
     } m_reg_status;           // Mapped to address 0x2002
-    uint8_t m_reg_spr_addr;   // Mapped to address 0x2003
-    uint8_t m_reg_spr_io;     // Mapped to address 0x2004
+    struct {                  // Helper struct for MMIO 0x2003 and 0x2004
+        // Not sure if this needs anything else fancy yet, it looks like this
+        //      sorta address only needs to be eight bits
+        uint8_t addr;
+    } m_oam_latch;
     struct {                  // Helper struct for MMIO 0x2005
         enum LatchState {
             xByte, yByte
@@ -96,6 +98,10 @@ private:
 
     // Keep track of scanline and cycle
     int m_cycle, m_scanline;
+
+    // Pointer to sprite attribute memory - aka oam, I will likely use these
+    //      terms interchangebly throughout my comments
+    std::unique_ptr<uint8_t[]> m_spr_ram;
     
     // A pointer to the PPU busline
     ppu_bus* m_ppu_bus;
@@ -133,7 +139,7 @@ public:
     void      ctrl1_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2000
     void      ctrl2_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2001
     void     status_w(uint8_t value); uint8_t     status_r(); // Mapped to address 0x2002
-    void   spr_addr_w(uint8_t value); uint8_t   spr_addr_r(); // Mapped to address 0x2003
+    void   spr_addr_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2003
     void     spr_io_w(uint8_t value); uint8_t     spr_io_r(); // Mapped to address 0x2004
     void vram_addr1_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2005
     void vram_addr2_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2006

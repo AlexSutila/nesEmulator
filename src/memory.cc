@@ -36,7 +36,7 @@ void cpu_bus::connect_ppu(Ricoh2C02* ppu_ptr) {
      m_io_reads[0x2002] = [](cpu_bus& t) { return t.m_ppu->status_r(); };
     //                                             spr_addr - Mapped to memory address 0x2003
     m_io_writes[0x2003] = [](cpu_bus& t, uint8_t value) { t.m_ppu->spr_addr_w(value); };
-     m_io_reads[0x2003] = [](cpu_bus& t) { return t.m_ppu->spr_addr_r(); };
+     m_io_reads[0x2003] = [](cpu_bus& t) { return t.m_ppu->open_bus_r(); };
     //                                               spr_io - Mapped to memory address 0x2004
     m_io_writes[0x2004] = [](cpu_bus& t, uint8_t value) { t.m_ppu->spr_io_w(value); };
      m_io_reads[0x2004] = [](cpu_bus& t) { return t.m_ppu->spr_io_r(); };

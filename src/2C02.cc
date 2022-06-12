@@ -34,12 +34,13 @@ Ricoh2C02::Ricoh2C02() {
 
     m_io_db = 0x00;
 
+    // Allocate memory for sprite attribute memory
+    m_spr_ram = std::make_unique<uint8_t[]>(0x0100);
+
     // Initialize registers
     m_reg_ctrl1.raw  = 0x00;
     m_reg_ctrl2.raw  = 0x00;
     m_reg_status.raw = 0x00;
-    m_reg_spr_addr   = 0x00;
-    m_reg_spr_io     = 0x00;
 
     // Initialize scroll latch
     m_scroll_latch.state   = m_scroll_latch.xByte;
@@ -69,7 +70,7 @@ void Ricoh2C02::connect_bus(ppu_bus* ppu_bus_ptr) {
     m_ppu_bus = ppu_bus_ptr;
 }
 
-/* Memory access to the cpu buslines */
+/* Memory access to the ppu buslines */
 
 void Ricoh2C02::WB(uint16_t addr, uint8_t value) {
     m_ppu_bus->WB(addr, value);
@@ -130,7 +131,8 @@ void Ricoh2C02::step() {
             int tile_x = t.m_cycle    / tileSizePixels, mod_x = t.m_cycle    % tileSizePixels;
 
             // Calculate base addresses determined by control register bits
-            uint16_t bgPatTableAddr = t.m_reg_ctrl1.bg_pattabl ? 0x1000 : 0x0000;
+            uint16_t sprPatTableAddr = t.m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
+            uint16_t  bgPatTableAddr = t.m_reg_ctrl1.bg_pattabl     ? 0x1000 : 0x0000;
 
             // Obtain the tile index and attribute byte from the name table, also calculate tile base address
             uint16_t tileIndex    = t.RB(ntsBaseAddress + tile_x + (tile_y * nametableRows));
@@ -243,20 +245,19 @@ uint8_t Ricoh2C02::status_r() {
 
 
 void Ricoh2C02::spr_addr_w(uint8_t value) {
-    m_reg_spr_addr = value;
-    m_io_db        = value; // Update data latch
+    m_io_db = value; // Update data latch
+    // TODO
 }
-uint8_t Ricoh2C02::spr_addr_r() {
-    return m_reg_spr_addr;
-}
+/* This register is write only - call open bus for read */
 
 
 void Ricoh2C02::spr_io_w(uint8_t value) {
-    m_reg_spr_io = value;
-    m_io_db      = value; // Update data latch
+    m_io_db = value; // Update data latch
+    // TODO
 }
 uint8_t Ricoh2C02::spr_io_r() {
-    return m_reg_spr_io;
+    // TODO
+    return 0x00;
 }
 
 
