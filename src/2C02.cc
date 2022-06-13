@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "2C02.hh"
 
 static const unsigned int g_pal_data[64] = {
@@ -114,9 +115,9 @@ void Ricoh2C02::step() {
         // Rendering
         [](Ricoh2C02& t) {
 
-            const uint16_t ntsBaseAddress  = 0x2000;
-            const uint16_t attrMemOffset   = 0x03C0;
-            const uint16_t iPalBaseAddress = 0x3F00;
+            const uint16_t ntMemBaseAddress = 0x2000;
+            const uint16_t attrMemOffset    = 0x03C0;
+            const uint16_t iPalBaseAddress  = 0x3F00;
 
             const int nametableRows  = 32;
             const int tileSizePixels = 8;
@@ -126,18 +127,29 @@ void Ricoh2C02::step() {
 
             /* Render a single pixel */
 
+            int nt_index_x = t.m_reg_ctrl1.nt_address & 1, nt_index_y = (t.m_reg_ctrl1.nt_address & 2) >> 1;
+            int scrolled_x = t.m_cycle + t.m_scroll_latch.scrollX, scrolled_y = t.m_scanline + t.m_scroll_latch.scrollY;
+
+            // Name table corssover due to scrolling logic
+            if (scrolled_x >= 256) { scrolled_x %= 256; nt_index_x ^= 1; } // Handle cross over into next nametable horizontally
+            if (scrolled_y >= 240) { scrolled_y %= 240; nt_index_y ^= 1; } // Handle cross over into next nametable vertically
+            // It is my intention that scrolled x and y serve as indices into the name table where as nt_index x and y determine
+            //      which name table is being indexed in the current context. 
+            assert((scrolled_x<256) && (scrolled_y<240) && (nt_index_x<2) && (nt_index_y<2));
+
             // Do some tile position calculations
-            int tile_y = t.m_scanline / tileSizePixels, mod_y = t.m_scanline % tileSizePixels;
-            int tile_x = t.m_cycle    / tileSizePixels, mod_x = t.m_cycle    % tileSizePixels;
+            int tile_y = scrolled_y / tileSizePixels, mod_y = scrolled_y % tileSizePixels;
+            int tile_x = scrolled_x / tileSizePixels, mod_x = scrolled_x % tileSizePixels;
 
             // Calculate base addresses determined by control register bits
+            uint16_t nameTableBase   = ((nt_index_x*0x400)+(nt_index_y*0x800))+ntMemBaseAddress;
             uint16_t sprPatTableAddr = t.m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
-            uint16_t  bgPatTableAddr = t.m_reg_ctrl1.bg_pattabl     ? 0x1000 : 0x0000;
+            uint16_t bgPatTableAddr  = t.m_reg_ctrl1.bg_pattabl     ? 0x1000 : 0x0000;
 
             // Obtain the tile index and attribute byte from the name table, also calculate tile base address
-            uint16_t tileIndex    = t.RB(ntsBaseAddress + tile_x + (tile_y * nametableRows));
+            uint16_t tileIndex    = t.RB(nameTableBase + tile_x + (tile_y * nametableRows));
             uint16_t tileBaseAddr = (tileIndex * tileSizeBytes) + bgPatTableAddr; // In pattern memory
-            uint16_t attrBaseAddr = ntsBaseAddress + attrMemOffset + ((tile_x / 4) + ((tile_y / 4) * 8));
+            uint16_t attrBaseAddr = nameTableBase + attrMemOffset + ((tile_x / 4) + ((tile_y / 4) * 8));
 
             // Read the actual tile data bytes and extract the low bits of the color index
             uint8_t tileDataLo = t.RB(tileBaseAddr + mod_y + 0), tileDataHi = t.RB(tileBaseAddr + mod_y + 8);

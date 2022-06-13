@@ -114,7 +114,7 @@ ntMirrors::nameTableMirrorMode Cart::nt_mirror() {
     //      should be used to determine mirroring.
     //      ...
     // Mirroring mode ignores this bit and is mapper based other wise
-    if (m_cart_header.mapper_0 & 0x08 == 0x00)
+    if ((m_cart_header.mapper_0 & 0x08) == 0x00)
         return (m_cart_header.mapper_0 & 0x01) ?
             ntMirrors::vertical  : 
             ntMirrors::horizontal;
