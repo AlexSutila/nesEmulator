@@ -49,6 +49,9 @@ void cpu_bus::connect_ppu(Ricoh2C02* ppu_ptr) {
     //                                              vram_io - Mapped to memory address 0x2007
     m_io_writes[0x2007] = [](cpu_bus& t, uint8_t value) { t.m_ppu->vram_io_w(value); };
      m_io_reads[0x2007] = [](cpu_bus& t) { return t.m_ppu->vram_io_r(); };
+    //                                              oam_dma - Mapped to memory address 0x4014
+    m_io_writes[0x4014] = [](cpu_bus& t, uint8_t value) { t.m_ppu->oam_dma_w(value, t.m_elapsed_clocks); };
+     m_io_reads[0x4014] = [](cpu_bus& t) { return t.m_ppu->open_bus_r(); };
 
 }
 
@@ -139,6 +142,8 @@ void cpu_bus::rst() {
 /* Step all components on the bus ------------------------- */
 
 void cpu_bus::step() {
+
+    ++m_elapsed_clocks;
     
     // PPU is clocked at 3x speed
     m_ppu->step(); m_ppu->step(); m_ppu->step();

@@ -145,5 +145,8 @@ public:
     void vram_addr1_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2005
     void vram_addr2_w(uint8_t value); /* Open bus behavior */ // Mapped to address 0x2006
     void    vram_io_w(uint8_t value); uint8_t    vram_io_r(); // Mapped to address 0x2007
+    // Includes cyc parameter for current cpu bus cycle number to determine if its odd or even
+    //      as this slightly affects the timing of the CPU suspension
+    void    oam_dma_w(uint8_t value, unsigned long long cyc); // Mapped to address 0x4014
 
 };

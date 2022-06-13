@@ -95,6 +95,11 @@ void Ricoh2C02::step() {
         // Pre render
         [](Ricoh2C02& t) {
 
+            t.m_reg_status.vblank_occuring = t.m_reg_status.sprite_0_hit = false;
+
+            // Oam Address is set to zero during this period
+            if (t.m_cycle >= 257 && t.m_cycle <= 320) t.m_oam_latch.addr = 0;
+
             // Move into first visible scanline
             if (t.m_scanline == 0) t.m_curstate = rendering;
 
@@ -124,6 +129,9 @@ void Ricoh2C02::step() {
             const int tileSizeBytes  = 16;
 
             static int buf_pos = 0;
+
+            // Oam Address is set to zero during this period
+            if (t.m_cycle >= 257 && t.m_cycle <= 320) t.m_oam_latch.addr = 0;
 
             /* Render a single pixel */
 
@@ -219,14 +227,23 @@ void Ricoh2C02::step() {
     Debugger::get().set_ppu_context(ctx);
     // Check if a bus dump has been invoked, if so dump the ppu bus contents
     if (Debugger::get().m_dump_ppu_bus) {
-        /* This dumps every single byte into a file, I will also write multiple visualisers
-                of this data in the testing directory in case I ever need it */
+        
+        // Dump PPU bus
+        /* This data can be visualized with some python scripts I wrote in the
+                testing directory. Be wary, the code is not pretty lmao */
         std::ofstream outfile;
         outfile.open("testing/dumps/ppubusdump.txt", std::ios::out | std::ios::binary);
         for (int i = 0x0000; i <= 0x3FFF; i++) outfile << RB(i);
         outfile.close();
+        
+        // Dump SPR memory
+        outfile.open("testing/dumps/sprramdump.txt", std::ios::out | std::ios::binary);
+        for (int i = 0; i <= 0xFF; i++) outfile << m_spr_ram[i];
+        outfile.close();
+        
         // Set this to false so it doesn't generate upon every step
         Debugger::get().m_dump_ppu_bus = false;
+
     }
     #endif
     
@@ -277,19 +294,25 @@ uint8_t Ricoh2C02::status_r() {
 
 
 void Ricoh2C02::spr_addr_w(uint8_t value) {
+    m_oam_latch.addr = value;
     m_io_db = value; // Update data latch
-    // TODO
 }
 /* This register is write only - call open bus for read */
 
 
 void Ricoh2C02::spr_io_w(uint8_t value) {
+    m_spr_ram[(m_addr_latch.addr)++] = value;
     m_io_db = value; // Update data latch
-    // TODO
 }
 uint8_t Ricoh2C02::spr_io_r() {
-    // TODO
-    return 0x00;
+    uint8_t data = m_spr_ram[m_addr_latch.addr];
+
+    // I think this is sufficient but am not certain
+    if ((m_curstate != vBlank) && (m_reg_ctrl2.show_bg && m_reg_ctrl2.show_spries)) 
+        m_addr_latch.addr++; 
+
+    m_io_db = data; // Update data latch
+    return data;
 }
 
 
@@ -361,4 +384,27 @@ uint8_t Ricoh2C02::vram_io_r() {
     }
 
 }
+
+
+// Note, DMA is handled entirely within this function including CPU suspension as the
+//      bus is clocked as bytes are transfered. This does not include stepping the CPU
+void Ricoh2C02::oam_dma_w(uint8_t value, unsigned long long cyc) {
+
+    m_io_db = value; // Update data latch
+
+    // Value written makes up the upper byte of the source address
+    uint16_t src_addr = value << 8;
+    // Initial wait state cycle to wait for write to complete
+    m_cpu_bus->step();
+    // Additional cycle before transfer if on an odd CPU cycle
+    if (cyc & 1 != 0) m_cpu_bus->step();
+    // Begin transfer, 2 clocks per byte, one for the read and one
+    //      for the write - transfer an entire page
+    for (uint16_t offset = 0; offset <= 0xFF; offset++) {
+        uint8_t data = m_cpu_bus->RB(src_addr + offset); m_cpu_bus->step();
+        m_spr_ram[offset] = data;                        m_cpu_bus->step();
+    }
+
+}
+/* This register is write only - call open bus for read */
 
