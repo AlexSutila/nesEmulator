@@ -79,7 +79,7 @@ void Ricoh2A03::do_interrupt(uint16_t addr) {
 
     // Push status to stack
     m_flag_b = false; m_flag_i = true;
-    WB(0x0100 + m_reg_s--, m_reg_s);
+    WB(0x0100 + m_reg_s--, m_reg_p); 
 
     // Jump to fetched jump address
     m_reg_pc  = RB(addr++);

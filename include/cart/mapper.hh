@@ -43,11 +43,11 @@ private:
 
 public:
 
-    Mapper_000(Cart* cart_ptr, int sz_prg_rom, int sz_chr_rom, int sz_prg_ram) : 
-        m_cart(cart_ptr), 
+    Mapper_000(Cart* cart_ptr, int sz_prg_rom, int sz_chr_rom, int sz_prg_ram) :
         m_size_prg_rom(sz_prg_rom),
         m_size_chr_rom(sz_chr_rom),
-        m_size_prg_ram(sz_prg_ram) {}
+        m_size_prg_ram(sz_prg_ram),
+        m_cart(cart_ptr) {}
 
     // Mapper access by CPU
     void cpu_WB(uint16_t addr, uint8_t value) override;
@@ -110,10 +110,10 @@ private:
 public:
 
     Mapper_001(Cart* cart_ptr, int sz_prg_rom, int sz_chr_rom, int sz_prg_ram) : 
-        m_cart(cart_ptr), 
         m_size_prg_rom(sz_prg_rom),
         m_size_chr_rom(sz_chr_rom),
-        m_size_prg_ram(sz_prg_ram) {
+        m_size_prg_ram(sz_prg_ram),
+        m_cart(cart_ptr) {
             // Initialize internal shift registers
             m_shift_register.data  = 0x00;
             m_shift_register.value = 0x20;

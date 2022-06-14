@@ -75,7 +75,7 @@ void nes::run() {
             uint8_t cycles = m_cpu.step();
 
             // Catch up remaining components
-            for(cycles; cycles > 0; cycles--) 
+            for(; cycles > 0; cycles--) 
                 m_cpu_bus.step();
             
             #ifdef DEBUG

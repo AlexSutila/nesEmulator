@@ -151,7 +151,7 @@ void Ricoh2C02::step() {
 
             // Calculate base addresses determined by control register bits
             uint16_t nameTableBase   = ((nt_index_x*0x400)+(nt_index_y*0x800))+ntMemBaseAddress;
-            uint16_t sprPatTableAddr = t.m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
+            // uint16_t sprPatTableAddr = t.m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
             uint16_t bgPatTableAddr  = t.m_reg_ctrl1.bg_pattabl     ? 0x1000 : 0x0000;
 
             // Obtain the tile index and attribute byte from the name table, also calculate tile base address
@@ -205,11 +205,9 @@ void Ricoh2C02::step() {
     };
 
     const int scanline_length = 341;
-    const int scanline_count  = 261; // There are actually 262, but I'm using -1 for the
-                                     //     pre-render scanline which affects things
 
     // Keep track of old scanline and cycle to detect wrap arounds
-    int old_cycle = m_cycle, old_scanline = m_scanline;
+    int old_cycle = m_cycle;
 
     // Move things along
     ++m_cycle %= scanline_length; // Increment cycle, wrap to zero after 340
@@ -397,7 +395,7 @@ void Ricoh2C02::oam_dma_w(uint8_t value, unsigned long long cyc) {
     // Initial wait state cycle to wait for write to complete
     m_cpu_bus->step();
     // Additional cycle before transfer if on an odd CPU cycle
-    if (cyc & 1 != 0) m_cpu_bus->step();
+    if ((cyc & 1) != 0) m_cpu_bus->step();
     // Begin transfer, 2 clocks per byte, one for the read and one
     //      for the write - transfer an entire page
     for (uint16_t offset = 0; offset <= 0xFF; offset++) {
