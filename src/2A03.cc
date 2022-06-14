@@ -191,7 +191,7 @@ uint8_t Ricoh2A03::ins() {
 
         m_flag_c = (t16 > 0xFF);
         m_flag_z = (t16 & 0xFF) == 0;
-        m_flag_v = (~((uint16_t)m_reg_a^(uint16_t)t16)&((uint16_t)m_reg_a^(uint16_t)t16))&0x0080;
+        m_flag_v = (~((uint16_t)m_reg_a^(uint16_t)t8)&((uint16_t)m_reg_a^(uint16_t)t16))&0x0080;
         m_flag_n = t16 & 0x80;
 
         m_reg_a = t16 & 0xFF;
@@ -314,11 +314,10 @@ uint8_t Ricoh2A03::ins() {
     }
     else if constexpr (op == BRK) {
 
-        m_flag_i = true; 
-        WB(0x0100 + m_reg_s--, (++m_reg_pc >> 8) & 0xFF);
+        WB(0x0100 + m_reg_s--, (m_reg_pc >> 8) & 0xFF);
         WB(0x0100 + m_reg_s--, m_reg_pc & 0xFF);
         
-        WB(0x100 + m_reg_s--, m_reg_p | 0x10);
+        WB(0x100 + m_reg_s--, m_reg_p | 0x30);
         m_flag_b = false;
 
         m_reg_pc = (uint16_t)RB(0xFFFE) | ((uint16_t)RB(0xFFFF) << 8);
@@ -614,6 +613,7 @@ uint8_t Ricoh2A03::ins() {
         m_flag_c = (t16 & 0xFF00);
         m_flag_z = (t16 & 0x00FF) == 0;
         m_flag_v = (t16 ^ (uint16_t)m_reg_a) & (t16 ^ val) & 0x80;
+        m_flag_n = (t16 & 0x0080);
         m_reg_a = t16 & 0xFF;
 
         if (addrmode_extra_cycle) ++extra_cycles;
@@ -695,54 +695,36 @@ uint8_t Ricoh2A03::ins() {
 
 uint8_t Ricoh2A03::step() {
 
-    // For conciseness
-    typedef uint8_t (Ricoh2A03::*instruction)();
-    using a = Ricoh2A03;
+    typedef struct { 
+        uint8_t (Ricoh2A03::*fn)(); // Instruction function function pointer
+        uint8_t len;                // Base length of instruction in cycles
+    } instruction;
     
+    #define a(a_m, op, cyc) \
+        { &Ricoh2A03::ins<a_m,op>, cyc }
     // Lookup table of function pointers, indexed by opcode to get 
     //      the instruction to execute ... 
     static const instruction lookup[0x100] = 
     {
-    /* ~Dorceless~            0x-0              0x-1              0x-2              0x-3              0x-4              0x-5              0x-6              0x-7              0x-8              0x-9              0x-A              0x-B              0x-C              0x-D              0x-E              0x-F */ 
-        /* 0x0- */ &a::ins<IMM,BRK>, &a::ins<IZX,ORA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,ORA>, &a::ins<ZP0,ASL>, &a::ins<IMP,NOP>, &a::ins<IMP,PHP>, &a::ins<IMM,ORA>, &a::ins<IMP,ASL>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABS,ORA>, &a::ins<ABS,ASL>, &a::ins<IMP,NOP>,
-		/* 0x1- */ &a::ins<REL,BPL>, &a::ins<IZY,ORA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,ORA>, &a::ins<ZPX,ASL>, &a::ins<IMP,NOP>, &a::ins<IMP,CLC>, &a::ins<ABY,ORA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,ORA>, &a::ins<ABX,ASL>, &a::ins<IMP,NOP>,
-		/* 0x2- */ &a::ins<ABS,JSR>, &a::ins<IZX,AND>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,BIT>, &a::ins<ZP0,AND>, &a::ins<ZP0,ROL>, &a::ins<IMP,NOP>, &a::ins<IMP,PLP>, &a::ins<IMM,AND>, &a::ins<IMP,ROL>, &a::ins<IMP,NOP>, &a::ins<ABS,BIT>, &a::ins<ABS,AND>, &a::ins<ABS,ROL>, &a::ins<IMP,NOP>,
-		/* 0x3- */ &a::ins<REL,BMI>, &a::ins<IZY,AND>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,AND>, &a::ins<ZPX,ROL>, &a::ins<IMP,NOP>, &a::ins<IMP,SEC>, &a::ins<ABY,AND>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,AND>, &a::ins<ABX,ROL>, &a::ins<IMP,NOP>,
-		/* 0x4- */ &a::ins<IMP,RTI>, &a::ins<IZX,EOR>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,EOR>, &a::ins<ZP0,LSR>, &a::ins<IMP,NOP>, &a::ins<IMP,PHA>, &a::ins<IMM,EOR>, &a::ins<IMP,LSR>, &a::ins<IMP,NOP>, &a::ins<ABS,JMP>, &a::ins<ABS,EOR>, &a::ins<ABS,LSR>, &a::ins<IMP,NOP>,
-		/* 0x5- */ &a::ins<REL,BVC>, &a::ins<IZY,EOR>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,EOR>, &a::ins<ZPX,LSR>, &a::ins<IMP,NOP>, &a::ins<IMP,CLI>, &a::ins<ABY,EOR>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,EOR>, &a::ins<ABX,LSR>, &a::ins<IMP,NOP>,
-		/* 0x6- */ &a::ins<IMP,RTS>, &a::ins<IZX,ADC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,ADC>, &a::ins<ZP0,ROR>, &a::ins<IMP,NOP>, &a::ins<IMP,PLA>, &a::ins<IMM,ADC>, &a::ins<IMP,ROR>, &a::ins<IMP,NOP>, &a::ins<IND,JMP>, &a::ins<ABS,ADC>, &a::ins<ABS,ROR>, &a::ins<IMP,NOP>,
-		/* 0x7- */ &a::ins<REL,BVS>, &a::ins<IZY,ADC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,ADC>, &a::ins<ZPX,ROR>, &a::ins<IMP,NOP>, &a::ins<IMP,SEI>, &a::ins<ABY,ADC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,ADC>, &a::ins<ABX,ROR>, &a::ins<IMP,NOP>,
-		/* 0x8- */ &a::ins<IMP,NOP>, &a::ins<IZX,STA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,STY>, &a::ins<ZP0,STA>, &a::ins<ZP0,STX>, &a::ins<IMP,NOP>, &a::ins<IMP,DEY>, &a::ins<IMP,NOP>, &a::ins<IMP,TXA>, &a::ins<IMP,NOP>, &a::ins<ABS,STY>, &a::ins<ABS,STA>, &a::ins<ABS,STX>, &a::ins<IMP,NOP>,
-		/* 0x9- */ &a::ins<REL,BCC>, &a::ins<IZY,STA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,STY>, &a::ins<ZPX,STA>, &a::ins<ZPY,STX>, &a::ins<IMP,NOP>, &a::ins<IMP,TYA>, &a::ins<ABY,STA>, &a::ins<IMP,TXS>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,STA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>,
-		/* 0xA- */ &a::ins<IMM,LDY>, &a::ins<IZX,LDA>, &a::ins<IMM,LDX>, &a::ins<IMP,NOP>, &a::ins<ZP0,LDY>, &a::ins<ZP0,LDA>, &a::ins<ZP0,LDX>, &a::ins<IMP,NOP>, &a::ins<IMP,TAY>, &a::ins<IMM,LDA>, &a::ins<IMP,TAX>, &a::ins<IMP,NOP>, &a::ins<ABS,LDY>, &a::ins<ABS,LDA>, &a::ins<ABS,LDX>, &a::ins<IMP,NOP>,
-		/* 0xB- */ &a::ins<REL,BCS>, &a::ins<IZY,LDA>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,LDY>, &a::ins<ZPX,LDA>, &a::ins<ZPY,LDX>, &a::ins<IMP,NOP>, &a::ins<IMP,CLV>, &a::ins<ABY,LDA>, &a::ins<IMP,TSX>, &a::ins<IMP,NOP>, &a::ins<ABX,LDY>, &a::ins<ABX,LDA>, &a::ins<ABY,LDX>, &a::ins<IMP,NOP>,
-		/* 0xC- */ &a::ins<IMM,CPY>, &a::ins<IZX,CMP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,CPY>, &a::ins<ZP0,CMP>, &a::ins<ZP0,DEC>, &a::ins<IMP,NOP>, &a::ins<IMP,INY>, &a::ins<IMM,CMP>, &a::ins<IMP,DEX>, &a::ins<IMP,NOP>, &a::ins<ABS,CPY>, &a::ins<ABS,CMP>, &a::ins<ABS,DEC>, &a::ins<IMP,NOP>,
-		/* 0xD- */ &a::ins<REL,BNE>, &a::ins<IZY,CMP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,CMP>, &a::ins<ZPX,DEC>, &a::ins<IMP,NOP>, &a::ins<IMP,CLD>, &a::ins<ABY,CMP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,CMP>, &a::ins<ABX,DEC>, &a::ins<IMP,NOP>,
-		/* 0xE- */ &a::ins<IMM,CPX>, &a::ins<IZX,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZP0,CPX>, &a::ins<ZP0,SBC>, &a::ins<ZP0,INC>, &a::ins<IMP,NOP>, &a::ins<IMP,INX>, &a::ins<IMM,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,SBC>, &a::ins<ABS,CPX>, &a::ins<ABS,SBC>, &a::ins<ABS,INC>, &a::ins<IMP,NOP>,
-		/* 0xF- */ &a::ins<REL,BEQ>, &a::ins<IZY,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ZPX,SBC>, &a::ins<ZPX,INC>, &a::ins<IMP,NOP>, &a::ins<IMP,SED>, &a::ins<ABY,SBC>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<IMP,NOP>, &a::ins<ABX,SBC>, &a::ins<ABX,INC>, &a::ins<IMP,NOP>,
+    /* ~Dorceless~        0x-0          0x-1          0x-2          0x-3          0x-4          0x-5          0x-6          0x-7          0x-8          0x-9          0x-A          0x-B          0x-C          0x-D          0x-E          0x-F */ 
+        /* 0x0- */ a(IMM,BRK,7), a(IZX,ORA,6), a(IMP,NOP,2), a(IMP,NOP,8), a(IMP,NOP,3), a(ZP0,ORA,3), a(ZP0,ASL,5), a(IMP,NOP,5), a(IMP,PHP,3), a(IMM,ORA,2), a(IMP,ASL,2), a(IMP,NOP,2), a(IMP,NOP,4), a(ABS,ORA,4), a(ABS,ASL,6), a(IMP,NOP,6),
+        /* 0x1- */ a(REL,BPL,2), a(IZY,ORA,5), a(IMP,NOP,2), a(IMP,NOP,8), a(IMP,NOP,4), a(ZPX,ORA,4), a(ZPX,ASL,6), a(IMP,NOP,6), a(IMP,CLC,2), a(ABY,ORA,4), a(IMP,NOP,2), a(IMP,NOP,7), a(IMP,NOP,4), a(ABX,ORA,4), a(ABX,ASL,7), a(IMP,NOP,7),
+        /* 0x2- */ a(ABS,JSR,6), a(IZX,AND,6), a(IMP,NOP,2), a(IMP,NOP,8), a(ZP0,BIT,3), a(ZP0,AND,3), a(ZP0,ROL,5), a(IMP,NOP,5), a(IMP,PLP,4), a(IMM,AND,2), a(IMP,ROL,2), a(IMP,NOP,2), a(ABS,BIT,4), a(ABS,AND,4), a(ABS,ROL,6), a(IMP,NOP,6),
+        /* 0x3- */ a(REL,BMI,2), a(IZY,AND,5), a(IMP,NOP,2), a(IMP,NOP,8), a(IMP,NOP,4), a(ZPX,AND,4), a(ZPX,ROL,6), a(IMP,NOP,6), a(IMP,SEC,2), a(ABY,AND,4), a(IMP,NOP,2), a(IMP,NOP,7), a(IMP,NOP,4), a(ABX,AND,4), a(ABX,ROL,7), a(IMP,NOP,7),
+        /* 0x4- */ a(IMP,RTI,6), a(IZX,EOR,6), a(IMP,NOP,2), a(IMP,NOP,8), a(IMP,NOP,3), a(ZP0,EOR,3), a(ZP0,LSR,5), a(IMP,NOP,5), a(IMP,PHA,3), a(IMM,EOR,2), a(IMP,LSR,2), a(IMP,NOP,2), a(ABS,JMP,3), a(ABS,EOR,4), a(ABS,LSR,6), a(IMP,NOP,6),
+        /* 0x5- */ a(REL,BVC,2), a(IZY,EOR,5), a(IMP,NOP,2), a(IMP,NOP,8), a(IMP,NOP,4), a(ZPX,EOR,4), a(ZPX,LSR,6), a(IMP,NOP,6), a(IMP,CLI,2), a(ABY,EOR,4), a(IMP,NOP,2), a(IMP,NOP,7), a(IMP,NOP,4), a(ABX,EOR,4), a(ABX,LSR,7), a(IMP,NOP,7),
+        /* 0x6- */ a(IMP,RTS,6), a(IZX,ADC,6), a(IMP,NOP,2), a(IMP,NOP,8), a(IMP,NOP,3), a(ZP0,ADC,3), a(ZP0,ROR,5), a(IMP,NOP,5), a(IMP,PLA,4), a(IMM,ADC,2), a(IMP,ROR,2), a(IMP,NOP,2), a(IND,JMP,5), a(ABS,ADC,4), a(ABS,ROR,6), a(IMP,NOP,6),
+        /* 0x7- */ a(REL,BVS,2), a(IZY,ADC,5), a(IMP,NOP,2), a(IMP,NOP,8), a(IMP,NOP,4), a(ZPX,ADC,4), a(ZPX,ROR,6), a(IMP,NOP,6), a(IMP,SEI,2), a(ABY,ADC,4), a(IMP,NOP,2), a(IMP,NOP,7), a(IMP,NOP,4), a(ABX,ADC,4), a(ABX,ROR,7), a(IMP,NOP,7),
+        /* 0x8- */ a(IMP,NOP,2), a(IZX,STA,6), a(IMP,NOP,2), a(IMP,NOP,6), a(ZP0,STY,3), a(ZP0,STA,3), a(ZP0,STX,3), a(IMP,NOP,3), a(IMP,DEY,2), a(IMP,NOP,2), a(IMP,TXA,2), a(IMP,NOP,2), a(ABS,STY,4), a(ABS,STA,4), a(ABS,STX,4), a(IMP,NOP,4),
+        /* 0x9- */ a(REL,BCC,2), a(IZY,STA,6), a(IMP,NOP,2), a(IMP,NOP,6), a(ZPX,STY,4), a(ZPX,STA,4), a(ZPY,STX,4), a(IMP,NOP,4), a(IMP,TYA,2), a(ABY,STA,5), a(IMP,TXS,2), a(IMP,NOP,5), a(IMP,NOP,5), a(ABX,STA,5), a(IMP,NOP,5), a(IMP,NOP,5),
+        /* 0xA- */ a(IMM,LDY,2), a(IZX,LDA,6), a(IMM,LDX,2), a(IMP,NOP,6), a(ZP0,LDY,3), a(ZP0,LDA,3), a(ZP0,LDX,3), a(IMP,NOP,3), a(IMP,TAY,2), a(IMM,LDA,2), a(IMP,TAX,2), a(IMP,NOP,2), a(ABS,LDY,4), a(ABS,LDA,4), a(ABS,LDX,4), a(IMP,NOP,4),
+        /* 0xB- */ a(REL,BCS,2), a(IZY,LDA,5), a(IMP,NOP,2), a(IMP,NOP,5), a(ZPX,LDY,4), a(ZPX,LDA,4), a(ZPY,LDX,4), a(IMP,NOP,4), a(IMP,CLV,2), a(ABY,LDA,4), a(IMP,TSX,2), a(IMP,NOP,4), a(ABX,LDY,4), a(ABX,LDA,4), a(ABY,LDX,4), a(IMP,NOP,4),
+        /* 0xC- */ a(IMM,CPY,2), a(IZX,CMP,6), a(IMP,NOP,2), a(IMP,NOP,8), a(ZP0,CPY,3), a(ZP0,CMP,3), a(ZP0,DEC,5), a(IMP,NOP,5), a(IMP,INY,2), a(IMM,CMP,2), a(IMP,DEX,2), a(IMP,NOP,2), a(ABS,CPY,4), a(ABS,CMP,4), a(ABS,DEC,6), a(IMP,NOP,6),
+        /* 0xD- */ a(REL,BNE,2), a(IZY,CMP,5), a(IMP,NOP,2), a(IMP,NOP,8), a(IMP,NOP,4), a(ZPX,CMP,4), a(ZPX,DEC,6), a(IMP,NOP,6), a(IMP,CLD,2), a(ABY,CMP,4), a(IMP,NOP,2), a(IMP,NOP,7), a(IMP,NOP,4), a(ABX,CMP,4), a(ABX,DEC,7), a(IMP,NOP,7),
+        /* 0xE- */ a(IMM,CPX,2), a(IZX,SBC,6), a(IMP,NOP,2), a(IMP,NOP,8), a(ZP0,CPX,3), a(ZP0,SBC,3), a(ZP0,INC,5), a(IMP,NOP,5), a(IMP,INX,2), a(IMM,SBC,2), a(IMP,NOP,2), a(IMP,SBC,2), a(ABS,CPX,4), a(ABS,SBC,4), a(ABS,INC,6), a(IMP,NOP,6),
+        /* 0xF- */ a(REL,BEQ,2), a(IZY,SBC,5), a(IMP,NOP,2), a(IMP,NOP,8), a(IMP,NOP,4), a(ZPX,SBC,4), a(ZPX,INC,6), a(IMP,NOP,6), a(IMP,SED,2), a(ABY,SBC,4), a(IMP,NOP,2), a(IMP,NOP,7), a(IMP,NOP,4), a(ABX,SBC,4), a(ABX,INC,7), a(IMP,NOP,7),
     };
-    // Look up table for the base amount of cycles an instruction
-    //      uses, any extra cycles used are returned from the function
-    //      from the lookup table
-    static const uint8_t cycle_timings[0x100] = 
-    {
-        7, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,
-	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	    6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 4, 4, 6, 6,
-	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	    6, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 3, 4, 6, 6,
-	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	    6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 5, 4, 6, 6,
-	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	    2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
-	    2, 6, 2, 6, 4, 4, 4, 4, 2, 5, 2, 5, 5, 5, 5, 5,
-	    2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
-	    2, 5, 2, 5, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4,
-	    2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
-	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	    2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
-	    2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-    };
+    #undef a
 
     uint8_t extra_cycles = 0;
 
@@ -768,8 +750,8 @@ uint8_t Ricoh2A03::step() {
 
     // Read an opcode and execute the corresponding instruction, add
     //      any extra cycles consumed during instruction execution
-    uint8_t opcode = RB(m_reg_pc++);
-    extra_cycles += (this->*lookup[opcode])();
+    const instruction& i = lookup[RB(m_reg_pc++)];
+    extra_cycles += (this->*i.fn)();
 
     // Update debug info
     #ifdef DEBUG
@@ -787,5 +769,5 @@ uint8_t Ricoh2A03::step() {
     #endif
 
     // Return the total number of cycles used
-    return extra_cycles + cycle_timings[opcode];
+    return extra_cycles + i.len;
 }
