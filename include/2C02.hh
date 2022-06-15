@@ -12,7 +12,7 @@ struct cpu_bus;
 struct ppu_bus;
 
 // Defines screen resolution in pixels
-#define TV_W 255
+#define TV_W 256
 #define TV_H 240
 
 struct Ricoh2C02 {
@@ -26,11 +26,15 @@ private:
 
         // These are in no particular order, the lookup tables within step
         //      are depended on this ordering, however ...
-        prerender  , // Single pre render scanline
-        postrender , // Post visible scanline, before VBlank
-        rendering  , // Any visible scanlines while rendering
-        hBlank     , // Any visible scanlines while HBlanking
-        vBlank     , // All VBlanking scanlines
+        prerender   , // Single pre render scanline
+        postrender  , // Post visible scanline, before VBlank
+        rendering   , // Any visible scanlines while rendering
+        sprPrefetch , // Prefetch sprite data for next scanln
+        // On a real NES, the hardware does bgPrefetch during this period I'm refering to as 
+        //      hBlank. I'm not going to worry about this for the sake of simplicity, plus
+        //      as of right now my implementation really just doesn't need it to work. 
+        hBlank      , // Any visible scanlines while HBlanking
+        vBlank      , // All VBlanking scanlines
 
     };
     ppuState m_curstate;

@@ -86,22 +86,20 @@ uint8_t Ricoh2C02::RB(uint16_t addr) {
 #define OVERFLOW(old, cur) (old > cur)
 void Ricoh2C02::step() {
 
+    typedef void (*func)(Ricoh2C02&); 
+    
     // Look up table of function pointers which do what the PPU should
     //      do in its corresponding state. This includes handling next
     //      state logic.
-    typedef void (*func)(Ricoh2C02&);
-    static const func lookup[5] = {
+    static const func lookup[6] = {
 
-        // Pre render
+        // Pre render - Idle Period
         [](Ricoh2C02& t) {
 
-            t.m_reg_status.vblank_occuring = t.m_reg_status.sprite_0_hit = false;
-
-            // Oam Address is set to zero during this period
-            if (t.m_cycle >= 257 && t.m_cycle <= 320) t.m_oam_latch.addr = 0;
-
-            // Move into first visible scanline
-            if (t.m_scanline == 0) t.m_curstate = rendering;
+            // Move into sprite prefetch to fetch sprite data for 
+            //      the first scanline
+            if (t.m_cycle == TV_W) t.m_curstate = sprPrefetch;
+            assert(t.m_scanline == -1); // Just to be safe
 
         },
 
@@ -117,7 +115,8 @@ void Ricoh2C02::step() {
 
         },
 
-        // Rendering
+        // Rendering - also a background tile fetch period on the real hardware, I just fetch background
+        //      tiles as I need them in this implementation
         [](Ricoh2C02& t) {
 
             const uint16_t ntMemBaseAddress = 0x2000;
@@ -130,13 +129,14 @@ void Ricoh2C02::step() {
 
             static int buf_pos = 0;
 
-            // Oam Address is set to zero during this period
-            if (t.m_cycle >= 257 && t.m_cycle <= 320) t.m_oam_latch.addr = 0;
-
+            // The cycle variable has been incremented prior to the calling of this lambda, so use this for the x position
+            //      on the screen to prevent everything from accidentally being shifted one pixel.
+            int dot = t.m_cycle - 1;
+            
             /* Render a single pixel */
 
             int nt_index_x = t.m_reg_ctrl1.nt_address & 1, nt_index_y = (t.m_reg_ctrl1.nt_address & 2) >> 1;
-            int scrolled_x = t.m_cycle + t.m_scroll_latch.scrollX, scrolled_y = t.m_scanline + t.m_scroll_latch.scrollY;
+            int scrolled_x = dot + t.m_scroll_latch.scrollX, scrolled_y = t.m_scanline + t.m_scroll_latch.scrollY;
 
             // Name table corssover due to scrolling logic
             if (scrolled_x >= 256) { scrolled_x %= 256; nt_index_x ^= 1; } // Handle cross over into next nametable horizontally
@@ -175,15 +175,28 @@ void Ricoh2C02::step() {
             t.m_framebuf[buf_pos] = g_pal_data[t.RB(iPalBaseAddress + colorIndex)];
             ++buf_pos %= (TV_W * TV_H);
 
-            // Move into HBlank
-            if (t.m_cycle == TV_W) t.m_curstate = hBlank;
+            // Move into sprite Prefetch to get sprite data for next scanline
+            if (t.m_cycle == TV_W) t.m_curstate = sprPrefetch;
 
         },
 
-        // HBlank
+        // Sprite Pre-Fetch - always cycles 256 to 319 inclusive
+        [](Ricoh2C02& t) {
+            
+            // Move to HBlank, or what would normally be background prefetch with an additional
+            //      five clock cycles where it basically sits idle
+            if (t.m_cycle == 320) t.m_curstate = hBlank;
+
+        },
+
+        // HBlank - This actually pre-fetches some tile data for the next scanline, two tiles
+        //      to be exact. Again, my implememtation as of now just reads memory as it needs
+        //      it so I'm not really going to do much here to maintain simplicity. 
+        //      ...
+        // These pre-fetch cycles exist to support the background scrolling to my understanding
         [](Ricoh2C02& t) {
 
-            // Move into post render or hBlank
+            // Move into post render or to start of another visible scanline
             if (t.m_scanline == 240) t.m_curstate = postrender;
             else if (t.m_cycle == 0) t.m_curstate = rendering;
 
@@ -193,7 +206,7 @@ void Ricoh2C02::step() {
         [](Ricoh2C02& t) {
 
             // Move into pre render scanline
-            if (t.m_scanline == 262) {
+            if (t.m_scanline == 261) {
                 t.m_curstate = prerender;
                 t.m_scanline = -1;
                 // Render the completed frame
