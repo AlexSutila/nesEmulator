@@ -104,9 +104,30 @@ private:
     // Keep track of scanline and cycle
     int m_cycle, m_scanline;
 
-    // Pointer to sprite attribute memory - aka oam, I will likely use these
-    //      terms interchangebly throughout my comments
+    // A representation of the sprites in object attribute memory
+    typedef struct {
+        uint8_t y_pos;
+        uint8_t index;
+        union {
+            uint8_t attr;
+            struct {
+                uint8_t color      : 2;
+                uint8_t unused     : 3;
+                bool    priority   : 1;
+                bool    flip_horiz : 1;
+                bool    flip_vet   : 1;
+            };
+        };
+        uint8_t x_pos;
+    } Sprite;
+
+    // Pointer to sprite attribute memory plus buffer for prefetch
+    //      data during visible scanlines
     std::unique_ptr<uint8_t[]> m_spr_ram;
+    // Due to hardware limitations, this buffer can only contain 
+    //      eight sprites
+    std::shared_ptr<Sprite> m_spr_buf[8];
+    int m_spr_buf_count;
     
     // A pointer to the PPU busline
     ppu_bus* m_ppu_bus;

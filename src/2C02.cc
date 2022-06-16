@@ -35,8 +35,10 @@ Ricoh2C02::Ricoh2C02() {
 
     m_io_db = 0x00;
 
-    // Allocate memory for sprite attribute memory
+    // Allocate memory for sprite attribute memories
     m_spr_ram = std::make_unique<uint8_t[]>(0x0100);
+    for (int i = 0; i < 8; i++) m_spr_buf[i] = std::make_shared<Sprite>();
+    m_spr_buf_count = 0;
 
     // Initialize registers
     m_reg_ctrl1.raw  = 0x00;
@@ -176,12 +178,21 @@ void Ricoh2C02::step() {
             ++buf_pos %= (TV_W * TV_H);
 
             // Move into sprite Prefetch to get sprite data for next scanline
-            if (t.m_cycle == TV_W) t.m_curstate = sprPrefetch;
+            if (t.m_cycle == TV_W) {
+                t.m_curstate = sprPrefetch;
+                t.m_spr_buf_count = 0;
+            }
 
         },
 
         // Sprite Pre-Fetch - always cycles 256 to 319 inclusive
         [](Ricoh2C02& t) {
+
+            if (t.m_cycle == 257) // Fetching all data on this cycle for simplicity
+                for (uint8_t cur_sprite_addr = 0; cur_sprite_addr < 0x100 && t.m_spr_buf_count < 8; cur_sprite_addr += 4) {
+                    // TODO: Actually populate the sprite buffer with sprites that satisfy a 
+                    //      certain condition - be visible on the next scanline
+                }
             
             // Move to HBlank, or what would normally be background prefetch with an additional
             //      five clock cycles where it basically sits idle
