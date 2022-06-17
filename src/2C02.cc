@@ -33,6 +33,8 @@ Ricoh2C02::Ricoh2C02() {
     m_framebuf = std::shared_ptr<unsigned int[]>(new unsigned int[TV_W * TV_H]);
     for (int i = 0; i < TV_W * TV_H; i++) m_framebuf[i] = 0;
 
+    m_buf_pos = 0;
+    m_on_sprite = false;
     m_io_db = 0x00;
 
     // Allocate memory for sprite attribute memories
@@ -126,66 +128,22 @@ void Ricoh2C02::step() {
         
         case rendering: {
 
-            const uint16_t ntMemBaseAddress = 0x2000;
-            const uint16_t attrMemOffset    = 0x03C0;
-            const uint16_t iPalBaseAddress  = 0x3F00;
+            if (m_spr_buf_count > 0 && m_spr_buf[m_spr_buf_count - 1].get()->x_pos == m_cycle - 1) m_on_sprite = true;
 
-            const int nametableRows  = 32;
-            const int tileSizePixels = 8;
-            const int tileSizeBytes  = 16;
-
-            static int buf_pos = 0;
-
-            // The cycle variable has been incremented prior to the calling of this lambda, so use this for the x position
-            //      on the screen to prevent everything from accidentally being shifted one pixel.
-            int dot = m_cycle - 1;
-            
-            /* Render a single pixel */
-
-            int nt_index_x = m_reg_ctrl1.nt_address & 1, nt_index_y = (m_reg_ctrl1.nt_address & 2) >> 1;
-            int scrolled_x = dot + m_scroll_latch.scrollX, scrolled_y = m_scanline + m_scroll_latch.scrollY;
-
-            // Name table corssover due to scrolling logic
-            if (scrolled_x >= 256) { scrolled_x %= 256; nt_index_x ^= 1; } // Handle cross over into next nametable horizontally
-            if (scrolled_y >= 240) { scrolled_y %= 240; nt_index_y ^= 1; } // Handle cross over into next nametable vertically
-            // It is my intention that scrolled x and y serve as indices into the name table where as nt_index x and y determine
-            //      which name table is being indexed in the current context. 
-            assert((scrolled_x<256) && (scrolled_y<240) && (nt_index_x<2) && (nt_index_y<2));
-
-            // Do some tile position calculations
-            int tile_y = scrolled_y / tileSizePixels, mod_y = scrolled_y % tileSizePixels;
-            int tile_x = scrolled_x / tileSizePixels, mod_x = scrolled_x % tileSizePixels;
-
-            // Calculate base addresses determined by control register bits
-            uint16_t nameTableBase   = ((nt_index_x*0x400)+(nt_index_y*0x800))+ntMemBaseAddress;
-            // uint16_t sprPatTableAddr = t.m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
-            uint16_t bgPatTableAddr  = m_reg_ctrl1.bg_pattabl     ? 0x1000 : 0x0000;
-
-            // Obtain the tile index and attribute byte from the name table, also calculate tile base address
-            uint16_t tileIndex    = RB(nameTableBase + tile_x + (tile_y * nametableRows));
-            uint16_t tileBaseAddr = (tileIndex * tileSizeBytes) + bgPatTableAddr; // In pattern memory
-            uint16_t attrBaseAddr = nameTableBase + attrMemOffset + ((tile_x / 4) + ((tile_y / 4) * 8));
-
-            // Read the actual tile data bytes and extract the low bits of the color index
-            uint8_t tileDataLo = RB(tileBaseAddr + mod_y + 0), tileDataHi = RB(tileBaseAddr + mod_y + 8);
-            uint8_t colorIndex = ((tileDataLo >> (7 - mod_x)) & 1) | (((tileDataHi >> (7 - mod_x)) & 1) << 1);
-
-            // Extract the high bits of the color index
-            switch (((tile_x / 2) % 2) + (((tile_y / 2) % 2) * 2)) {
-                case 0: colorIndex |= (RB(attrBaseAddr) & 0x03) << 2; break;
-                case 1: colorIndex |= (RB(attrBaseAddr) & 0x0C) << 0; break;
-                case 2: colorIndex |= (RB(attrBaseAddr) & 0x30) >> 2; break;
-                case 3: colorIndex |= (RB(attrBaseAddr) & 0xC0) >> 4; break;
+            // Render either a single foreground pixel or background pixel
+            if (!m_on_sprite) m_framebuf[m_buf_pos] = fetch_bg_pixel();
+            else { // I will likely elaborate on this to pick up on overlapping sprites
+                m_framebuf[m_buf_pos] = fetch_fg_pixel();
             }
 
-            // Write the color at the color index to the frame buffer, and move the buffer index along
-            m_framebuf[buf_pos] = g_pal_data[RB(iPalBaseAddress + colorIndex)];
-            ++buf_pos %= (TV_W * TV_H);
+            // Move buffer position along, wrap back around once it falls off the edge of the buffer
+            ++m_buf_pos %= (TV_W * TV_H);
 
             // Move into sprite Prefetch to get sprite data for next scanline
             if (m_cycle == TV_W) {
                 m_curstate = sprPrefetch;
                 m_spr_buf_count = 0;
+                m_on_sprite = false;
             }
             
         }  break;
@@ -199,18 +157,25 @@ void Ricoh2C02::step() {
                 // The sprites in the buffer at this point have been rendered and the PPU enters this state to fetch
                 //      more for the next scanline. There should essentially be zero sprites in the buffer
                 assert(m_spr_buf_count == 0);
-                
+
+                int next_scanln = m_scanline + 1;
                 // Fetching all data on this exact cycle for simplicity
-                for (uint8_t cur_sprite_addr = 0; cur_sprite_addr <= 0xFF && m_spr_buf_count < 8; cur_sprite_addr += 4) {
-                    uint8_t x = m_spr_ram[cur_sprite_addr + x_offset], y = m_spr_ram[cur_sprite_addr + y_offset] + 1;
-                    if (x + 8 > 0 && x < TV_W && y + 8 > 0 && y < TV_W /* TODO: Consider variable height sprites */) {
+                for (uint16_t cur_sprite_addr = 0; (cur_sprite_addr < 0x100) && (m_spr_buf_count < 8); cur_sprite_addr += 4) {
+                    uint16_t x = m_spr_ram[cur_sprite_addr + x_offset], y = m_spr_ram[cur_sprite_addr + y_offset];
+                    if (x + 8 > 0 && x < TV_W && y + 8 > next_scanln && y <= next_scanln /* TODO: Consider variable height sprites */) {
+                        
                         m_spr_buf[m_spr_buf_count].get()->y_pos = m_spr_ram[cur_sprite_addr + y_offset];
                         m_spr_buf[m_spr_buf_count].get()->index = m_spr_ram[cur_sprite_addr + index_offset];
                         m_spr_buf[m_spr_buf_count].get()->attr  = m_spr_ram[cur_sprite_addr + attr_offset];
                         m_spr_buf[m_spr_buf_count].get()->x_pos = m_spr_ram[cur_sprite_addr + x_offset];
+                        
+                        // This priority will be compared against overlapping sprites to determine which sprite should
+                        //      be rendered on top of another. Lower values have a higher priority. 
+                        m_spr_buf[m_spr_buf_count].get()->render_priority = cur_sprite_addr & 0xFF;
                         ++m_spr_buf_count;
                     } 
                 }
+                assert(m_spr_buf_count >= 0 && m_spr_buf_count <= 8);
             }
             
             // Move to HBlank, or what would normally be background prefetch with an additional
@@ -223,7 +188,12 @@ void Ricoh2C02::step() {
 
             // Move into post render or to start of another visible scanline
             if (m_scanline == 240) m_curstate = postrender;
-            else if (m_cycle == 0) m_curstate = rendering;
+            else if (m_cycle == 0) { 
+            
+                // TODO: Sort sprites based on X position
+            
+                m_curstate = rendering;
+            }
             
         } break;
         
@@ -272,6 +242,70 @@ void Ricoh2C02::step() {
 }
 #undef OVERFLOW
 
+/* Render a single pixel ---------------------------------- */
+
+unsigned int Ricoh2C02::fetch_bg_pixel() {
+
+    const uint16_t ntMemBaseAddress = 0x2000;
+    const uint16_t attrMemOffset    = 0x03C0;
+    const uint16_t iPalBaseAddress  = 0x3F00;
+
+    const int nametableRows  = 32;
+    const int tileSizePixels = 8;
+    const int tileSizeBytes  = 16;
+
+    // The cycle variable has been incremented prior to the calling of this lambda, so use this for the x position
+    //      on the screen to prevent everything from accidentally being shifted one pixel.
+    int dot = m_cycle - 1;
+
+    int nt_index_x = m_reg_ctrl1.nt_address & 1, nt_index_y = (m_reg_ctrl1.nt_address & 2) >> 1;
+    int scrolled_x = dot + m_scroll_latch.scrollX, scrolled_y = m_scanline + m_scroll_latch.scrollY;
+
+    // Name table corssover due to scrolling logic
+    if (scrolled_x >= 256) { scrolled_x %= 256; nt_index_x ^= 1; } // Handle cross over into next nametable horizontally
+    if (scrolled_y >= 240) { scrolled_y %= 240; nt_index_y ^= 1; } // Handle cross over into next nametable vertically
+    // It is my intention that scrolled x and y serve as indices into the name table where as nt_index x and y determine
+    //      which name table is being indexed in the current context. 
+    assert((scrolled_x<256) && (scrolled_y<240) && (nt_index_x<2) && (nt_index_y<2));
+
+    // Do some tile position calculations
+    int tile_y = scrolled_y / tileSizePixels, mod_y = scrolled_y % tileSizePixels;
+    int tile_x = scrolled_x / tileSizePixels, mod_x = scrolled_x % tileSizePixels;
+
+    // Calculate base addresses determined by control register bits
+    uint16_t nameTableBase   = ((nt_index_x*0x400)+(nt_index_y*0x800))+ntMemBaseAddress;
+    uint16_t bgPatTableAddr  = m_reg_ctrl1.bg_pattabl     ? 0x1000 : 0x0000;
+
+    // Obtain the tile index and attribute byte from the name table, also calculate tile base address
+    uint16_t tileIndex    = RB(nameTableBase + tile_x + (tile_y * nametableRows));
+    uint16_t tileBaseAddr = (tileIndex * tileSizeBytes) + bgPatTableAddr; // In pattern memory
+    uint16_t attrBaseAddr = nameTableBase + attrMemOffset + ((tile_x / 4) + ((tile_y / 4) * 8));
+
+    // Read the actual tile data bytes and extract the low bits of the color index
+    uint8_t tileDataLo = RB(tileBaseAddr + mod_y + 0), tileDataHi = RB(tileBaseAddr + mod_y + 8);
+    uint8_t colorIndex = ((tileDataLo >> (7 - mod_x)) & 1) | (((tileDataHi >> (7 - mod_x)) & 1) << 1);
+
+    // Extract the high bits of the color index
+    switch (((tile_x / 2) % 2) + (((tile_y / 2) % 2) * 2)) {
+        case 0: colorIndex |= (RB(attrBaseAddr) & 0x03) << 2; break;
+        case 1: colorIndex |= (RB(attrBaseAddr) & 0x0C) << 0; break;
+        case 2: colorIndex |= (RB(attrBaseAddr) & 0x30) >> 2; break;
+        case 3: colorIndex |= (RB(attrBaseAddr) & 0xC0) >> 4; break;
+    }
+
+    // Use the color index to grab the correct color from the palette table
+    return g_pal_data[RB(iPalBaseAddress + colorIndex)];
+}
+
+unsigned int Ricoh2C02::fetch_fg_pixel() {
+
+    // TODO
+
+    m_on_sprite = false;
+    --m_spr_buf_count;
+    
+    return 0xFFAAAAAA;
+}
 
 
 /* MMIO functions ----------------------------------------- */
