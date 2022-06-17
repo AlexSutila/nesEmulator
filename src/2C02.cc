@@ -88,38 +88,43 @@ uint8_t Ricoh2C02::RB(uint16_t addr) {
 #define OVERFLOW(old, cur) (old > cur)
 void Ricoh2C02::step() {
 
-    typedef void (*func)(Ricoh2C02&); 
-    
-    // Look up table of function pointers which do what the PPU should
-    //      do in its corresponding state. This includes handling next
-    //      state logic.
-    static const func lookup[6] = {
+    const int scanline_length = 341;
 
-        // Pre render - Idle Period
-        [](Ricoh2C02& t) {
+    // Keep track of old scanline and cycle to detect wrap arounds
+    int old_cycle = m_cycle;
 
+    // Move things along
+    ++m_cycle %= scanline_length; // Increment cycle, wrap to zero after 340
+    if (OVERFLOW(old_cycle, m_cycle)) ++m_scanline;
+
+    // Do what needs to be done for the current state - handles next state logic too
+
+    switch (m_curstate) {
+        
+        case prerender: {
+            
             // Move into sprite prefetch to fetch sprite data for 
             //      the first scanline
-            if (t.m_cycle == TV_W) t.m_curstate = sprPrefetch;
-            assert(t.m_scanline == -1); // Just to be safe
+            if (m_cycle == TV_W) {
+                m_curstate = sprPrefetch;
+                m_spr_buf_count = 0;
+            }
+            assert(m_scanline == -1); // Just to be safe
 
-        },
-
-        // Post render
-        [](Ricoh2C02& t) {
-
+        } break;
+        
+        case postrender: {
+            
             // Move into VBlank
-            if (t.m_scanline == 241) {
-                if (t.m_reg_ctrl1.nmi_on_vblank) t.m_cpu_bus->nmi(); // NMI if $2000 bit 7 set
-                t.m_reg_status.vblank_occuring = true;               // Set bit 7 of $2002
-                t.m_curstate = vBlank;
+            if (m_scanline == 241) {
+                if (m_reg_ctrl1.nmi_on_vblank) m_cpu_bus->nmi(); // NMI if $2000 bit 7 set
+                m_reg_status.vblank_occuring = true;               // Set bit 7 of $2002
+                m_curstate = vBlank;
             }
 
-        },
-
-        // Rendering - also a background tile fetch period on the real hardware, I just fetch background
-        //      tiles as I need them in this implementation
-        [](Ricoh2C02& t) {
+        } break;
+        
+        case rendering: {
 
             const uint16_t ntMemBaseAddress = 0x2000;
             const uint16_t attrMemOffset    = 0x03C0;
@@ -133,12 +138,12 @@ void Ricoh2C02::step() {
 
             // The cycle variable has been incremented prior to the calling of this lambda, so use this for the x position
             //      on the screen to prevent everything from accidentally being shifted one pixel.
-            int dot = t.m_cycle - 1;
+            int dot = m_cycle - 1;
             
             /* Render a single pixel */
 
-            int nt_index_x = t.m_reg_ctrl1.nt_address & 1, nt_index_y = (t.m_reg_ctrl1.nt_address & 2) >> 1;
-            int scrolled_x = dot + t.m_scroll_latch.scrollX, scrolled_y = t.m_scanline + t.m_scroll_latch.scrollY;
+            int nt_index_x = m_reg_ctrl1.nt_address & 1, nt_index_y = (m_reg_ctrl1.nt_address & 2) >> 1;
+            int scrolled_x = dot + m_scroll_latch.scrollX, scrolled_y = m_scanline + m_scroll_latch.scrollY;
 
             // Name table corssover due to scrolling logic
             if (scrolled_x >= 256) { scrolled_x %= 256; nt_index_x ^= 1; } // Handle cross over into next nametable horizontally
@@ -154,91 +159,86 @@ void Ricoh2C02::step() {
             // Calculate base addresses determined by control register bits
             uint16_t nameTableBase   = ((nt_index_x*0x400)+(nt_index_y*0x800))+ntMemBaseAddress;
             // uint16_t sprPatTableAddr = t.m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
-            uint16_t bgPatTableAddr  = t.m_reg_ctrl1.bg_pattabl     ? 0x1000 : 0x0000;
+            uint16_t bgPatTableAddr  = m_reg_ctrl1.bg_pattabl     ? 0x1000 : 0x0000;
 
             // Obtain the tile index and attribute byte from the name table, also calculate tile base address
-            uint16_t tileIndex    = t.RB(nameTableBase + tile_x + (tile_y * nametableRows));
+            uint16_t tileIndex    = RB(nameTableBase + tile_x + (tile_y * nametableRows));
             uint16_t tileBaseAddr = (tileIndex * tileSizeBytes) + bgPatTableAddr; // In pattern memory
             uint16_t attrBaseAddr = nameTableBase + attrMemOffset + ((tile_x / 4) + ((tile_y / 4) * 8));
 
             // Read the actual tile data bytes and extract the low bits of the color index
-            uint8_t tileDataLo = t.RB(tileBaseAddr + mod_y + 0), tileDataHi = t.RB(tileBaseAddr + mod_y + 8);
+            uint8_t tileDataLo = RB(tileBaseAddr + mod_y + 0), tileDataHi = RB(tileBaseAddr + mod_y + 8);
             uint8_t colorIndex = ((tileDataLo >> (7 - mod_x)) & 1) | (((tileDataHi >> (7 - mod_x)) & 1) << 1);
 
             // Extract the high bits of the color index
             switch (((tile_x / 2) % 2) + (((tile_y / 2) % 2) * 2)) {
-                case 0: colorIndex |= (t.RB(attrBaseAddr) & 0x03) << 2; break;
-                case 1: colorIndex |= (t.RB(attrBaseAddr) & 0x0C) << 0; break;
-                case 2: colorIndex |= (t.RB(attrBaseAddr) & 0x30) >> 2; break;
-                case 3: colorIndex |= (t.RB(attrBaseAddr) & 0xC0) >> 4; break;
+                case 0: colorIndex |= (RB(attrBaseAddr) & 0x03) << 2; break;
+                case 1: colorIndex |= (RB(attrBaseAddr) & 0x0C) << 0; break;
+                case 2: colorIndex |= (RB(attrBaseAddr) & 0x30) >> 2; break;
+                case 3: colorIndex |= (RB(attrBaseAddr) & 0xC0) >> 4; break;
             }
 
             // Write the color at the color index to the frame buffer, and move the buffer index along
-            t.m_framebuf[buf_pos] = g_pal_data[t.RB(iPalBaseAddress + colorIndex)];
+            m_framebuf[buf_pos] = g_pal_data[RB(iPalBaseAddress + colorIndex)];
             ++buf_pos %= (TV_W * TV_H);
 
             // Move into sprite Prefetch to get sprite data for next scanline
-            if (t.m_cycle == TV_W) {
-                t.m_curstate = sprPrefetch;
-                t.m_spr_buf_count = 0;
+            if (m_cycle == TV_W) {
+                m_curstate = sprPrefetch;
+                m_spr_buf_count = 0;
             }
+            
+        }  break;
+        
+        case sprPrefetch: {
 
-        },
+            const uint8_t y_offset = 0, index_offset = 1, attr_offset = 2, x_offset = 3;
 
-        // Sprite Pre-Fetch - always cycles 256 to 319 inclusive
-        [](Ricoh2C02& t) {
+            if (m_cycle == 257) { // Fetching all data on this cycle for simplicity
 
-            if (t.m_cycle == 257) // Fetching all data on this cycle for simplicity
-                for (uint8_t cur_sprite_addr = 0; cur_sprite_addr < 0x100 && t.m_spr_buf_count < 8; cur_sprite_addr += 4) {
-                    // TODO: Actually populate the sprite buffer with sprites that satisfy a 
-                    //      certain condition - be visible on the next scanline
+                // The sprites in the buffer at this point have been rendered and the PPU enters this state to fetch
+                //      more for the next scanline. There should essentially be zero sprites in the buffer
+                assert(m_spr_buf_count == 0);
+                
+                // Fetching all data on this exact cycle for simplicity
+                for (uint8_t cur_sprite_addr = 0; cur_sprite_addr <= 0xFF && m_spr_buf_count < 8; cur_sprite_addr += 4) {
+                    uint8_t x = m_spr_ram[cur_sprite_addr + x_offset], y = m_spr_ram[cur_sprite_addr + y_offset] + 1;
+                    if (x + 8 > 0 && x < TV_W && y + 8 > 0 && y < TV_W /* TODO: Consider variable height sprites */) {
+                        m_spr_buf[m_spr_buf_count].get()->y_pos = m_spr_ram[cur_sprite_addr + y_offset];
+                        m_spr_buf[m_spr_buf_count].get()->index = m_spr_ram[cur_sprite_addr + index_offset];
+                        m_spr_buf[m_spr_buf_count].get()->attr  = m_spr_ram[cur_sprite_addr + attr_offset];
+                        m_spr_buf[m_spr_buf_count].get()->x_pos = m_spr_ram[cur_sprite_addr + x_offset];
+                        ++m_spr_buf_count;
+                    } 
                 }
+            }
             
             // Move to HBlank, or what would normally be background prefetch with an additional
             //      five clock cycles where it basically sits idle
-            if (t.m_cycle == 320) t.m_curstate = hBlank;
-
-        },
-
-        // HBlank - This actually pre-fetches some tile data for the next scanline, two tiles
-        //      to be exact. Again, my implememtation as of now just reads memory as it needs
-        //      it so I'm not really going to do much here to maintain simplicity. 
-        //      ...
-        // These pre-fetch cycles exist to support the background scrolling to my understanding
-        [](Ricoh2C02& t) {
+            if (m_cycle == 320) m_curstate = hBlank;
+            
+        } break;
+        
+        case hBlank: {
 
             // Move into post render or to start of another visible scanline
-            if (t.m_scanline == 240) t.m_curstate = postrender;
-            else if (t.m_cycle == 0) t.m_curstate = rendering;
-
-        },
-
-        // VBlank
-        [](Ricoh2C02& t) {
+            if (m_scanline == 240) m_curstate = postrender;
+            else if (m_cycle == 0) m_curstate = rendering;
+            
+        } break;
+        
+        case vBlank: {
 
             // Move into pre render scanline
-            if (t.m_scanline == 261) {
-                t.m_curstate = prerender;
-                t.m_scanline = -1;
+            if (m_scanline == 261) {
+                m_curstate = prerender;
+                m_scanline = -1;
                 // Render the completed frame
-                t.m_frameIncompete = false;
+                m_frameIncompete = false;
             }
-
-        },
-
-    };
-
-    const int scanline_length = 341;
-
-    // Keep track of old scanline and cycle to detect wrap arounds
-    int old_cycle = m_cycle;
-
-    // Move things along
-    ++m_cycle %= scanline_length; // Increment cycle, wrap to zero after 340
-    if (OVERFLOW(old_cycle, m_cycle)) ++m_scanline;
-
-    // Do what needs to be done for the current state - handles next state logic too
-    (lookup[m_curstate])(*this);
+            
+        } break;
+    }
 
     // Update debug info
     #ifdef DEBUG
