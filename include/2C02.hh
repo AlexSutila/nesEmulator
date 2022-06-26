@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <array>
 #include <cart/cart.hh>
 #include "memory.hh"
 
@@ -135,7 +136,7 @@ private:
     std::unique_ptr<uint8_t[]> m_spr_ram;
     // Due to hardware limitations, this buffer can only contain 
     //      eight sprites
-    std::shared_ptr<Sprite> m_spr_buf[8];
+    std::array<std::shared_ptr<Sprite>, 8> m_spr_buf;
     int m_spr_buf_count;
     
     // A pointer to the PPU busline

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <assert.h>
 #include "2C02.hh"
 
@@ -142,7 +143,6 @@ void Ricoh2C02::step() {
             // Move into sprite Prefetch to get sprite data for next scanline
             if (m_cycle == TV_W) {
                 m_curstate = sprPrefetch;
-                m_spr_buf_count = 0;
                 m_on_sprite = false;
             }
             
@@ -151,18 +151,13 @@ void Ricoh2C02::step() {
         case sprPrefetch: {
 
             const uint8_t y_offset = 0, index_offset = 1, attr_offset = 2, x_offset = 3;
-
             if (m_cycle == 257) { // Fetching all data on this cycle for simplicity
 
-                // The sprites in the buffer at this point have been rendered and the PPU enters this state to fetch
-                //      more for the next scanline. There should essentially be zero sprites in the buffer
-                assert(m_spr_buf_count == 0);
-
-                int next_scanln = m_scanline + 1;
+                m_spr_buf_count = 0;
                 // Fetching all data on this exact cycle for simplicity
                 for (uint16_t cur_sprite_addr = 0; (cur_sprite_addr < 0x100) && (m_spr_buf_count < 8); cur_sprite_addr += 4) {
-                    uint16_t x = m_spr_ram[cur_sprite_addr + x_offset], y = m_spr_ram[cur_sprite_addr + y_offset];
-                    if (x + 8 > 0 && x < TV_W && y + 8 > next_scanln && y <= next_scanln /* TODO: Consider variable height sprites */) {
+                    uint8_t x = m_spr_ram[cur_sprite_addr + x_offset], y = m_spr_ram[cur_sprite_addr + y_offset];
+                    if (x + 8 > 0 && x < TV_W && y + 8 > m_scanline && y <= m_scanline /* TODO: Consider variable height sprites */) {
                         
                         m_spr_buf[m_spr_buf_count].get()->y_pos = m_spr_ram[cur_sprite_addr + y_offset];
                         m_spr_buf[m_spr_buf_count].get()->index = m_spr_ram[cur_sprite_addr + index_offset];
@@ -188,10 +183,19 @@ void Ricoh2C02::step() {
 
             // Move into post render or to start of another visible scanline
             if (m_scanline == 240) m_curstate = postrender;
+            
             else if (m_cycle == 0) { 
-            
-                // TODO: Sort sprites based on X position
-            
+                
+                using ptr = std::shared_ptr<Sprite>;
+                auto it = m_spr_buf.begin();
+
+                // What I'm doing here is basically a sortable stack I guess, because sprites will
+                //      be popped off as they are rendered. I'm using an actual stack because I only
+                //      need 8 spaces maximum (hardware limits) and dynamic allocation is slowwweee
+                std::sort(it, it + m_spr_buf_count, [](ptr& a, ptr& b) {
+                    return a.get()->x_pos > b.get()->x_pos;
+                });
+
                 m_curstate = rendering;
             }
             
