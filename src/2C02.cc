@@ -35,7 +35,6 @@ Ricoh2C02::Ricoh2C02() {
     for (int i = 0; i < TV_W * TV_H; i++) m_framebuf[i] = 0;
 
     m_buf_pos = 0;
-    m_on_sprite = false;
     m_io_db = 0x00;
 
     // Allocate memory for sprite attribute memories
@@ -129,13 +128,8 @@ void Ricoh2C02::step() {
         
         case rendering: {
 
-            if (m_spr_buf_count > 0 && m_spr_buf[m_spr_buf_count - 1].get()->x_pos == m_cycle - 1) m_on_sprite = true;
-
-            // Render either a single foreground pixel or background pixel
-            if (!m_on_sprite) m_framebuf[m_buf_pos] = fetch_bg_pixel();
-            else { // I will likely elaborate on this to pick up on overlapping sprites
-                m_framebuf[m_buf_pos] = fetch_fg_pixel();
-            }
+            // Render a single background pixel
+            m_framebuf[m_buf_pos] = fetch_bg_pixel();
 
             // Move buffer position along, wrap back around once it falls off the edge of the buffer
             ++m_buf_pos %= (TV_W * TV_H);
@@ -143,7 +137,6 @@ void Ricoh2C02::step() {
             // Move into sprite Prefetch to get sprite data for next scanline
             if (m_cycle == TV_W) {
                 m_curstate = sprPrefetch;
-                m_on_sprite = false;
             }
             
         }  break;
@@ -153,7 +146,10 @@ void Ricoh2C02::step() {
             const uint8_t y_offset = 0, index_offset = 1, attr_offset = 2, x_offset = 3;
             if (m_cycle == 257) { // Fetching all data on this cycle for simplicity
 
+                for (int i = 0; i < m_spr_buf_count; i++) 
+                    render_sprite(*m_spr_buf[i]);
                 m_spr_buf_count = 0;
+
                 // Fetching all data on this exact cycle for simplicity
                 for (uint16_t cur_sprite_addr = 0; (cur_sprite_addr < 0x100) && (m_spr_buf_count < 8); cur_sprite_addr += 4) {
                     uint8_t x = m_spr_ram[cur_sprite_addr + x_offset], y = m_spr_ram[cur_sprite_addr + y_offset];
@@ -277,8 +273,8 @@ unsigned int Ricoh2C02::fetch_bg_pixel() {
     int tile_x = scrolled_x / tileSizePixels, mod_x = scrolled_x % tileSizePixels;
 
     // Calculate base addresses determined by control register bits
-    uint16_t nameTableBase   = ((nt_index_x*0x400)+(nt_index_y*0x800))+ntMemBaseAddress;
-    uint16_t bgPatTableAddr  = m_reg_ctrl1.bg_pattabl     ? 0x1000 : 0x0000;
+    uint16_t nameTableBase  = ((nt_index_x*0x400)+(nt_index_y*0x800))+ntMemBaseAddress;
+    uint16_t bgPatTableAddr = m_reg_ctrl1.bg_pattabl ? 0x1000 : 0x0000;
 
     // Obtain the tile index and attribute byte from the name table, also calculate tile base address
     uint16_t tileIndex    = RB(nameTableBase + tile_x + (tile_y * nametableRows));
@@ -301,14 +297,33 @@ unsigned int Ricoh2C02::fetch_bg_pixel() {
     return g_pal_data[RB(iPalBaseAddress + colorIndex)];
 }
 
-unsigned int Ricoh2C02::fetch_fg_pixel() {
+void Ricoh2C02::render_sprite(const Sprite& spr) {
 
-    // TODO
-
-    m_on_sprite = false;
-    --m_spr_buf_count;
+    const uint16_t patternTableBase = m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
+    const uint16_t sPalBaseAddress = 0x3F10;
     
-    return 0xFFAAAAAA;
+    // The minus one here is because the nes stores the real y position plus one
+    const uint8_t offset_y = m_scanline - spr.y_pos - 1;
+
+    // I would expect this to pass because of the nature of the sprite prefetch state
+    //      but I'm doing it anyway because I don't trust myself
+    assert(offset_y < 8);
+    
+    const int tileSizePixels = 8;
+    const int tileSizeBytes  = 16;
+
+    // Fetch sprite pattern data
+    uint16_t tileBaseAddr = patternTableBase + (spr.index * tileSizeBytes); // In pattern memory
+    uint16_t tileDataLo = RB(tileBaseAddr + offset_y + 0), tileDataHi = RB(tileBaseAddr + offset_y + 8);
+
+    for (int i = 0; i < tileSizePixels; i++) {
+        // uint8_t colorIndex = ((tileDataLo >> (7 - i)) & 1) | (((tileDataHi >> (7 - i)) & 1) << 1);
+        uint8_t colorIndex = ((tileDataLo >> (7 - i)) & 1) | (((tileDataHi >> (7 - i)) & 1) << 1);
+        // Color index zero is just ignored to my understanding. Draw nothing in this case
+        if (colorIndex != 0) m_framebuf[(m_scanline * TV_W) + spr.x_pos + i] = 
+            g_pal_data[RB((colorIndex | ((spr.attr & 3) << 2)) + sPalBaseAddress)];
+    }
+    
 }
 
 

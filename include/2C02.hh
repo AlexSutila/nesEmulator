@@ -23,7 +23,6 @@ private:
     // Pointer to frame buffer containing pixel data
     std::shared_ptr<unsigned int[]> m_framebuf;
     int m_buf_pos;    // Current position in frame buffer during a frame
-    bool m_on_sprite; // Determines if a sprite or background is rendering
 
     enum ppuState {
 
@@ -41,10 +40,6 @@ private:
 
     };
     ppuState m_curstate;
-
-    // Used to render a single pixel
-    unsigned int fetch_bg_pixel();
-    unsigned int fetch_fg_pixel();
 
     // Representation of internal data bus used for CPU communication, writes fill this "latch"
     //      and bits read also fill the latch with the bits read. Reading write only bits will
@@ -130,6 +125,9 @@ private:
         //      assistive variable rather than a real memory byte
         uint8_t render_priority;
     } Sprite;
+
+    void render_sprite(const Sprite& spr);
+    unsigned int fetch_bg_pixel();
 
     // Pointer to sprite attribute memory plus buffer for prefetch
     //      data during visible scanlines
