@@ -303,7 +303,10 @@ void Ricoh2C02::render_sprite(const Sprite& spr) {
     const uint16_t sPalBaseAddress = 0x3F10;
     
     // The minus one here is because the nes stores the real y position plus one
-    const uint8_t offset_y = m_scanline - spr.y_pos - 1;
+    uint8_t offset_y = m_scanline - spr.y_pos - 1;
+
+    // Check for vertical flip, flip vertically if bit set
+    if (spr.attr & 0x80) offset_y = 7 - offset_y;
 
     // I would expect this to pass because of the nature of the sprite prefetch state
     //      but I'm doing it anyway because I don't trust myself
@@ -318,7 +321,9 @@ void Ricoh2C02::render_sprite(const Sprite& spr) {
 
     for (int i = 0; i < tileSizePixels; i++) {
         // uint8_t colorIndex = ((tileDataLo >> (7 - i)) & 1) | (((tileDataHi >> (7 - i)) & 1) << 1);
-        uint8_t colorIndex = ((tileDataLo >> (7 - i)) & 1) | (((tileDataHi >> (7 - i)) & 1) << 1);
+        uint8_t colorIndex = (spr.attr & 0x40) ? // This specific bit determines horizontal flip
+            ((tileDataLo >> i) & 1) | (((tileDataHi >> i) & 1) << 1): // Horizontal sprite flip
+            ((tileDataLo >> (7 - i)) & 1) | (((tileDataHi >> (7 - i)) & 1) << 1);
         // Color index zero is just ignored to my understanding. Draw nothing in this case
         if (colorIndex != 0) m_framebuf[(m_scanline * TV_W) + spr.x_pos + i] = 
             g_pal_data[RB((colorIndex | ((spr.attr & 3) << 2)) + sPalBaseAddress)];
