@@ -185,9 +185,6 @@ void Ricoh2C02::step() {
                 using ptr = std::shared_ptr<Sprite>;
                 auto it = m_spr_buf.begin();
 
-                // What I'm doing here is basically a sortable stack I guess, because sprites will
-                //      be popped off as they are rendered. I'm using an actual stack because I only
-                //      need 8 spaces maximum (hardware limits) and dynamic allocation is slowwweee
                 std::sort(it, it + m_spr_buf_count, [](ptr& a, ptr& b) {
                     return a.get()->x_pos > b.get()->x_pos;
                 });

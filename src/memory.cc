@@ -14,6 +14,17 @@ cpu_bus::cpu_bus() {
 
 }
 
+/* Conecct controllers ------------------------------------ */
+
+void cpu_bus::connect_ctrl(Controller* ctrl_ptr) {
+    m_ctrl = ctrl_ptr;
+
+    m_io_writes[0x4016] = [](cpu_bus& t, uint8_t value) { t.m_ctrl->w_joypad(value); };
+     m_io_reads[0x4016] = [](cpu_bus& t) { return t.m_ctrl->r_joypad(); };
+
+}
+
+
 /* Connect components ------------------------------------- */
 
 void cpu_bus::connect_cpu(Ricoh2A03* cpu_ptr) {

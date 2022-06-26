@@ -13,6 +13,9 @@ nes::nes() {
 
     /* Make all necessary connections between cartridge components and buslines */
 
+    // Connect controller to busline
+    m_cpu_bus.connect_ctrl(&m_ctrl1);
+
     // Connect cartridge to busline
     m_cpu_bus.connect_cart(&m_cart);
     m_ppu_bus.connect_cart(&m_cart);
@@ -29,6 +32,7 @@ nes::nes() {
     m_window   = SDL_CreateWindow(name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, TV_W * winScale, TV_H * winScale, SDL_WINDOW_RESIZABLE);
     m_renderer = SDL_CreateRenderer(m_window, -1, 0);
     m_texture  = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, TV_W, TV_H);
+    m_time     = std::chrono::high_resolution_clock::now();
 
 }
 
@@ -39,6 +43,10 @@ bool nes::load_cart(const std::string& rom_path) {
 }
 
 void nes::event_poll() {
+
+    const uint8_t *key_state = SDL_GetKeyboardState(nullptr);
+    m_ctrl1.update(key_state);
+
     for (SDL_Event event; SDL_PollEvent(&event);) {
         switch (event.type) {
 
@@ -47,14 +55,13 @@ void nes::event_poll() {
                 break;
 
             case SDL_KEYDOWN:
-                
+
                 #ifdef DEBUG // 'Break' stop emu, go to debugger
-                const uint8_t *key_state = SDL_GetKeyboardState(nullptr);
                 if (key_state[SDL_SCANCODE_B]) {
                     Debugger::get().do_break();
                 }
                 #endif
-                
+
                 break;
                 
 
@@ -64,7 +71,10 @@ void nes::event_poll() {
 
 void nes::run() {
 
-    // Send reset signal
+    using timing = std::chrono::high_resolution_clock;
+    using namespace std::chrono;
+
+    const float frame_us = 16666.66667f;
     m_cpu_bus.rst();
 
     while (m_running) {
@@ -92,6 +102,11 @@ void nes::run() {
 
         // Do event poll
         event_poll();
+
+        // Wait for frame to complete in real time
+        while (duration_cast<microseconds>(timing::now() - m_time).count() < frame_us) 
+            ;
+        m_time = timing::now();
 
     }
 

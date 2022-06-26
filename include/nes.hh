@@ -1,8 +1,10 @@
 #pragma once
 #include <SDL2/SDL.h>
+#include <chrono>
 #include "cart/cart.hh"
 #include "2A03.hh"
 #include "2C02.hh"
+#include "ctrl.hh"
 #include "memory.hh"
 
 struct nes {
@@ -24,8 +26,13 @@ private:
     // Cartridge
     Cart m_cart;
 
-    /* For rendering -------------------------------------- */
+    /* Controllers, subject to change --------------------- */
 
+    Controller m_ctrl1;
+
+    /* For rendering and timing --------------------------- */
+
+    std::chrono::time_point<std::chrono::system_clock> m_time;
     SDL_Window   *m_window;
     SDL_Renderer *m_renderer;
     SDL_Texture  *m_texture;

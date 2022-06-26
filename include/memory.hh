@@ -3,6 +3,7 @@
 #include <memory>
 #include "2A03.hh"
 #include "2C02.hh"
+#include "ctrl.hh"
 #include "cart/cart.hh"
 
 struct Ricoh2A03;
@@ -28,12 +29,18 @@ private:
     std::unordered_map<uint16_t, void(*)(cpu_bus& t, uint8_t value)> m_io_writes;
     std::unordered_map<uint16_t, uint8_t(*)(cpu_bus& t)> m_io_reads;
 
+    // Controller pointer
+    Controller* m_ctrl;
+
 public:
 
     cpu_bus();
 
     // Just something to keep track of elapsed cycles
     unsigned long long m_elapsed_clocks = 0;
+
+    // Connect controllers
+    void connect_ctrl(Controller* ctrl_ptr);
 
     // Connect components
     void connect_cpu(Ricoh2A03* cpu_ptr);
