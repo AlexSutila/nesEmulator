@@ -248,7 +248,10 @@ void ppu_bus::WB(uint16_t addr, uint8_t value) {
     else if (addr >= 0x3F00 && addr <= 0x3FFF) {
 
         uint16_t reduced_addr = mirror_palettes(addr);
-        m_pal[reduced_addr] = value;
+        
+        // Don't write to copies of the BG palette intex
+        if ((addr == 0x3F00 || reduced_addr != 0x3F00))
+            m_pal[reduced_addr & 0x001F] = value;
 
     }
 
@@ -309,7 +312,7 @@ uint8_t ppu_bus::RB(uint16_t addr) {
     else if (addr >= 0x3F00 && addr <= 0x3FFF) {
 
         uint16_t reduced_addr = mirror_palettes(addr);
-        return m_pal[reduced_addr];
+        return m_pal[reduced_addr & 0x001F];
 
     }
 
