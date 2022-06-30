@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <assert.h>
 #include "2C02.hh"
 
@@ -151,7 +150,9 @@ void Ricoh2C02::step() {
             if (m_cycle == 257) { // Fetching all data on this cycle for simplicity
 
                 if (m_reg_ctrl2.show_spries)
-                    for (int i = 0; i < m_spr_buf_count; i++) 
+                    // Render sprites in reverse order to ensure highest priority sprites (meaning lowest base address) are 
+                    //      rendered on top of lower priority sprites (meaning higher base address)
+                    for (int i = m_spr_buf_count-1; i >= 0; i--) 
                         render_sprite(*m_spr_buf[i]);
                 m_spr_buf_count = 0;
 
@@ -187,14 +188,6 @@ void Ricoh2C02::step() {
             if (m_scanline == 240) m_curstate = postrender;
             
             else if (m_cycle == 0) { 
-                
-                using ptr = std::shared_ptr<Sprite>;
-                auto it = m_spr_buf.begin();
-
-                std::sort(it, it + m_spr_buf_count, [](ptr& a, ptr& b) {
-                    return a.get()->x_pos > b.get()->x_pos;
-                });
-
                 m_curstate = rendering;
             }
             
