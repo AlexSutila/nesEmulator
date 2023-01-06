@@ -332,19 +332,10 @@ void Ricoh2C02::prepare_sprite(Sprite& spr) {
 
     for (int i = 0; i < tileSizePixels; i++) {
 
-        // Don't render if sprite clipping enabled and within 8 leftmost pixels of screen
-        if ((!m_reg_ctrl2.clip_sprites && spr.x_pos + i < 8))
-            continue; // Do not render this sprite pixel
-
         // Calculate the two least significant bits of the color index into the global palette
         uint8_t colorIndex = (spr.attr & 0x40) ? // This specific bit determines horizontal flip
             ((tileDataLo >> i) & 1) | (((tileDataHi >> i) & 1) << 1): // Horizontal sprite flip
             ((tileDataLo >> (7 - i)) & 1) | (((tileDataHi >> (7 - i)) & 1) << 1);
-
-        // Determine if the pixel being rendered to is a BG pixel or not, if so render accordingly
-        //      depeinding on the sprite's render priority
-        if ((spr.attr & 0x20) && IS_BG(m_framebuf[(next_scanline * TV_W) + spr.x_pos + i]))
-            continue; // Do not render this sprite pixel
 
         spr.prefetch_data[i] = colorIndex;
     }
@@ -358,6 +349,15 @@ void Ricoh2C02::emplace_sprite(Sprite& spr) {
     for (int i = 0; i < tileSizePixels; i++) {
 
         const uint8_t colorIndex = spr.prefetch_data[i];
+
+        // Don't render if sprite clipping enabled and within 8 leftmost pixels of screen
+        if ((!m_reg_ctrl2.clip_sprites && spr.x_pos + i < 8))
+            continue; // Do not render this sprite pixel
+
+        // Determine if the pixel being rendered to is a BG pixel or not, if so render accordingly
+        //      depeinding on the sprite's render priority
+        if ((spr.attr & 0x20) && IS_BG(m_framebuf[(m_scanline * TV_W) + spr.x_pos + i]))
+            continue; // Do not render this sprite pixel
 
         // Color index zero is just ignored to my understanding. Draw nothing in this case
         if (colorIndex != 0) m_framebuf[(m_scanline * TV_W) + spr.x_pos + i] =
