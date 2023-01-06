@@ -135,7 +135,7 @@ private:
     void prepare_sprite(Sprite& spr);
     void emplace_sprite(Sprite& spr);
     unsigned int fetch_bg_pixel();
-    bool sprite_zero_check();
+    bool sprite_zero_check(int dot);
 
     // Pointer to sprite attribute memory plus buffer for prefetch
     //      data during visible scanlines

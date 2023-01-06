@@ -243,8 +243,20 @@ void Ricoh2C02::step() {
 
 /* For sprite zero hit ------------------------------------ */
 
-bool Ricoh2C02::sprite_zero_check() {
+bool Ricoh2C02::sprite_zero_check(int dot) {
 
+    const Sprite &spr0 = *m_spr_buf[0];
+    const uint8_t x = spr0.x_pos;
+
+    if (m_spr_buf_count == 0 || dot < x || dot > x + 7)
+        return false;
+    assert(dot - x >= 0 && dot - x <= 7);
+
+    if (spr0.prefetch_data[dot - x] == 0) {
+        m_reg_status.sprite_0_hit = true;
+        return true;
+    }
+    else return false;
 }
 
 /* Render a single pixel ---------------------------------- */
@@ -270,11 +282,11 @@ unsigned int Ricoh2C02::fetch_bg_pixel() {
     int scrolled_x = dot + m_scroll_latch.scrollX, scrolled_y = m_scanline + m_scroll_latch.scrollY;
 
     // Name table corssover due to scrolling logic
-    if (scrolled_x >= 256) { scrolled_x %= 256; nt_index_x ^= 1; } // Handle cross over into next nametable horizontally
-    if (scrolled_y >= 240) { scrolled_y %= 240; nt_index_y ^= 1; } // Handle cross over into next nametable vertically
+    if (scrolled_x >= TV_W) { scrolled_x %= TV_W; nt_index_x ^= 1; } // Handle cross over into next nametable horizontally
+    if (scrolled_y >= TV_H) { scrolled_y %= TV_H; nt_index_y ^= 1; } // Handle cross over into next nametable vertically
     // It is my intention that scrolled x and y serve as indices into the name table where as nt_index x and y determine
     //      which name table is being indexed in the current context. 
-    assert((scrolled_x<256) && (scrolled_y<240) && (nt_index_x<2) && (nt_index_y<2));
+    assert((scrolled_x<TV_W) && (scrolled_y<TV_H) && (nt_index_x<2) && (nt_index_y<2));
 
     // Do some tile position calculations
     int tile_y = scrolled_y / tileSizePixels, mod_y = scrolled_y % tileSizePixels;
@@ -304,9 +316,12 @@ unsigned int Ricoh2C02::fetch_bg_pixel() {
     // Calculate the address at which the global color palette index is stored
     uint16_t colorAddress = iPalBaseAddress + colorIndex;
     assert(colorAddress >= 0x3F00 && colorAddress < 0x3F10);
-    
-    unsigned int alpha_mask = ((colorAddress & 0x3) == 0x0) ?
-        0xFEFFFFFF /*BG*/ : 0xFFFFFFFF /*not BG*/;
+
+    unsigned int alpha_mask = 0xFFFFFFFF;
+    if ((colorAddress & 0x3) == 0x00) /* Pixel is BG */ {
+        alpha_mask = 0xFEFFFFFF;
+        sprite_zero_check(dot);
+    }
 
     return g_pal_data[RB(colorAddress)] & alpha_mask;
 }
