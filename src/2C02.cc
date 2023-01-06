@@ -147,13 +147,14 @@ void Ricoh2C02::step() {
 
             const uint8_t attr_mask = ~0x1C; // Mask to pull unimplemented bits of attr byte low
             const uint8_t y_offset = 0, index_offset = 1, attr_offset = 2, x_offset = 3;
+
             if (m_cycle == 257) { // Fetching all data on this cycle for simplicity
 
                 if (m_reg_ctrl2.show_spries)
                     // Render sprites in reverse order to ensure highest priority sprites (meaning lowest base address) are 
                     //      rendered on top of lower priority sprites (meaning higher base address)
-                    for (int i = m_spr_buf_count-1; i >= 0; i--) 
-                        render_sprite(*m_spr_buf[i]);
+                    for (int i = m_spr_buf_count-1; i >= 0; i--)
+                        emplace_sprite(*m_spr_buf[i]);
                 m_spr_buf_count = 0;
 
                 // Fetching all data on this exact cycle for simplicity
@@ -170,6 +171,8 @@ void Ricoh2C02::step() {
                         // This priority will be compared against overlapping sprites to determine which sprite should
                         //      be rendered on top of another. Lower values have a higher priority. 
                         m_spr_buf[m_spr_buf_count].get()->render_priority = cur_sprite_addr & 0xFF;
+                        prepare_sprite(*m_spr_buf[m_spr_buf_count]);
+
                         ++m_spr_buf_count;
                     } 
                 }
@@ -238,6 +241,12 @@ void Ricoh2C02::step() {
 }
 #undef OVERFLOW
 
+/* For sprite zero hit ------------------------------------ */
+
+bool Ricoh2C02::sprite_zero_check() {
+
+}
+
 /* Render a single pixel ---------------------------------- */
 
 unsigned int Ricoh2C02::fetch_bg_pixel() {
@@ -296,24 +305,23 @@ unsigned int Ricoh2C02::fetch_bg_pixel() {
     uint16_t colorAddress = iPalBaseAddress + colorIndex;
     assert(colorAddress >= 0x3F00 && colorAddress < 0x3F10);
     
-    // This is my lazy ass way of keeping track of whether a background pixel is rendered or not.
-    //      This will not be noticable, and its convenient for handling sprite priorities.
     unsigned int alpha_mask = ((colorAddress & 0x3) == 0x0) ?
         0xFEFFFFFF /*BG*/ : 0xFFFFFFFF /*not BG*/;
-    
+
     return g_pal_data[RB(colorAddress)] & alpha_mask;
 }
 
 #define IS_BG(color) \
     (bool)(color & 0x01000000) // Abusing alpha bits to keep track of BG, not stupid if it works
-void Ricoh2C02::render_sprite(const Sprite& spr) {
+
+void Ricoh2C02::prepare_sprite(Sprite& spr) {
 
     const int tileSizePixels = 8, tileSizeBytes = 16;
     const uint16_t patternTableBase = m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
-    const uint16_t sPalBaseAddress = 0x3F10;
-    
+    const int next_scanline = m_scanline + 1;
+
     // The minus one here is because the nes stores the real y position plus one
-    uint8_t offset_y = m_scanline - spr.y_pos - 1;
+    uint8_t offset_y = next_scanline - spr.y_pos - 1;
 
     // Check for vertical flip, flip vertically if bit set
     if (spr.attr & 0x80) offset_y = 7 - offset_y;
@@ -325,25 +333,38 @@ void Ricoh2C02::render_sprite(const Sprite& spr) {
     for (int i = 0; i < tileSizePixels; i++) {
 
         // Don't render if sprite clipping enabled and within 8 leftmost pixels of screen
-        if ((!m_reg_ctrl2.clip_sprites && spr.x_pos + i < 8)) 
+        if ((!m_reg_ctrl2.clip_sprites && spr.x_pos + i < 8))
             continue; // Do not render this sprite pixel
 
         // Calculate the two least significant bits of the color index into the global palette
         uint8_t colorIndex = (spr.attr & 0x40) ? // This specific bit determines horizontal flip
             ((tileDataLo >> i) & 1) | (((tileDataHi >> i) & 1) << 1): // Horizontal sprite flip
             ((tileDataLo >> (7 - i)) & 1) | (((tileDataHi >> (7 - i)) & 1) << 1);
-        
+
         // Determine if the pixel being rendered to is a BG pixel or not, if so render accordingly
         //      depeinding on the sprite's render priority
-        if ((spr.attr & 0x20) && IS_BG(m_framebuf[(m_scanline * TV_W) + spr.x_pos + i]))
+        if ((spr.attr & 0x20) && IS_BG(m_framebuf[(next_scanline * TV_W) + spr.x_pos + i]))
             continue; // Do not render this sprite pixel
 
+        spr.prefetch_data[i] = colorIndex;
+    }
+}
+
+void Ricoh2C02::emplace_sprite(Sprite& spr) {
+
+    const int tileSizePixels = 8;
+    const uint16_t sPalBaseAddress = 0x3F10;
+
+    for (int i = 0; i < tileSizePixels; i++) {
+
+        const uint8_t colorIndex = spr.prefetch_data[i];
+
         // Color index zero is just ignored to my understanding. Draw nothing in this case
-        if (colorIndex != 0) m_framebuf[(m_scanline * TV_W) + spr.x_pos + i] = 
+        if (colorIndex != 0) m_framebuf[(m_scanline * TV_W) + spr.x_pos + i] =
             g_pal_data[RB((colorIndex | ((spr.attr & 3) << 2)) + sPalBaseAddress)];
     }
-    
 }
+
 #undef IS_BG
 
 

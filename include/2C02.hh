@@ -121,19 +121,25 @@ private:
             };
         };
         uint8_t x_pos;
+
         // Dictates whether one sprite is rendered over another, this is an
         //      assistive variable rather than a real memory byte
         uint8_t render_priority;
+
+        // Another assistive variable to temporarily store color data that is
+        //      prefetched on each scanline. Reading this on the previous scanline
+        //      will allow for sprite 0 hit calculation
+        uint8_t prefetch_data[8];
     } Sprite;
 
-    void render_sprite(const Sprite& spr);
+    void prepare_sprite(Sprite& spr);
+    void emplace_sprite(Sprite& spr);
     unsigned int fetch_bg_pixel();
+    bool sprite_zero_check();
 
     // Pointer to sprite attribute memory plus buffer for prefetch
     //      data during visible scanlines
     std::unique_ptr<uint8_t[]> m_spr_ram;
-    // Due to hardware limitations, this buffer can only contain 
-    //      eight sprites
     std::array<std::shared_ptr<Sprite>, 8> m_spr_buf;
     int m_spr_buf_count;
     
