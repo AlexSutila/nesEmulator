@@ -142,6 +142,9 @@ private:
     std::unique_ptr<uint8_t[]> m_spr_ram;
     std::array<std::shared_ptr<Sprite>, 8> m_spr_buf;
     int m_spr_buf_count;
+
+    // Some fields for the dreaded sprite 0 hit
+    Sprite m_sprite_0;
     
     // A pointer to the PPU busline
     ppu_bus* m_ppu_bus;

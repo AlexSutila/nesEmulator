@@ -177,6 +177,12 @@ void Ricoh2C02::step() {
                     } 
                 }
                 assert(m_spr_buf_count >= 0 && m_spr_buf_count <= 8);
+
+                m_sprite_0.y_pos = m_spr_ram[y_offset];
+                m_sprite_0.index = m_spr_ram[index_offset];
+                m_sprite_0.attr  = m_spr_ram[attr_offset] & attr_mask;
+                m_sprite_0.x_pos = m_spr_ram[x_offset];
+                prepare_sprite(m_sprite_0);
             }
             
             // Move to HBlank, or what would normally be background prefetch with an additional
@@ -245,18 +251,22 @@ void Ricoh2C02::step() {
 
 bool Ricoh2C02::sprite_zero_check(int dot) {
 
-    const Sprite &spr0 = *m_spr_buf[0];
-    const uint8_t x = spr0.x_pos;
+    // NOTE: If this is called, it is assumed that the pixel in the BG is non-zero
+    const uint8_t x = m_sprite_0.x_pos, y = m_sprite_0.y_pos;
 
-    if (m_spr_buf_count == 0 || dot < x || dot > x + 7)
+    // If the bit is already set, no need to do the check. Should still make sure that
+    //      the current BG pixel lies within the sprite boundaries though
+    if (m_reg_status.sprite_0_hit || dot < x || dot > x + 7)
         return false;
+
     assert(dot - x >= 0 && dot - x <= 7);
 
-    if (spr0.prefetch_data[dot - x] == 0) {
+    if (m_sprite_0.prefetch_data[dot - x] != 0) {
         m_reg_status.sprite_0_hit = true;
         return true;
     }
     else return false;
+
 }
 
 /* Render a single pixel ---------------------------------- */
@@ -317,9 +327,9 @@ unsigned int Ricoh2C02::fetch_bg_pixel() {
     uint16_t colorAddress = iPalBaseAddress + colorIndex;
     assert(colorAddress >= 0x3F00 && colorAddress < 0x3F10);
 
-    unsigned int alpha_mask = 0xFFFFFFFF;
-    if ((colorAddress & 0x3) == 0x00) /* Pixel is BG */ {
-        alpha_mask = 0xFEFFFFFF;
+    unsigned int alpha_mask = 0xFEFFFFFF;
+    if ((colorAddress & 0x3) != 0x00) /* Pixel is not BG */ {
+        alpha_mask = 0xFFFFFFFF;
         sprite_zero_check(dot);
     }
 
