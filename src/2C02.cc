@@ -104,8 +104,12 @@ void Ricoh2C02::step() {
         
         case prerender: {
 
-            // This bit is cleared at this specific dot
-            if (m_cycle == 1) m_reg_status.sprite_0_hit = false;
+            // These bits are cleared at this specific dot
+            if (m_cycle == 1) {
+                m_reg_status.vblank_occuring = false;
+                m_reg_status.sprite_0_hit    = false;
+                m_reg_status.gt8_sprites     = false;
+            }
             
             // Move into sprite prefetch to fetch sprite data for 
             //      the first scanline
@@ -158,10 +162,17 @@ void Ricoh2C02::step() {
                 m_spr_buf_count = 0;
 
                 // Fetching all data on this exact cycle for simplicity
-                for (uint16_t cur_sprite_addr = 0; (cur_sprite_addr < 0x100) && (m_spr_buf_count < 8); cur_sprite_addr += 4) {
+                for (uint16_t cur_sprite_addr = 0; (cur_sprite_addr < 0x100); cur_sprite_addr += 4) {
                     uint8_t x = m_spr_ram[cur_sprite_addr + x_offset], y = m_spr_ram[cur_sprite_addr + y_offset];
                     if (x + 8 > 0 && x < TV_W && y + 8 > m_scanline && y <= m_scanline /* TODO: Consider variable height sprites */) {
-                        
+
+                        // The buffer is full but there are more sprites on this scanline. Stop searching, and set the 
+                        //      sprite overflow bit in $2002
+                        if (m_spr_buf_count == 8) {
+                            m_reg_status.gt8_sprites = true;
+                            break;
+                        }
+
                         m_spr_buf[m_spr_buf_count].get()->y_pos = m_spr_ram[cur_sprite_addr + y_offset];
                         m_spr_buf[m_spr_buf_count].get()->index = m_spr_ram[cur_sprite_addr + index_offset];
                         // Supposedly, some unused attribute bits read zero, so I'm just masking them out entirely here
@@ -174,14 +185,17 @@ void Ricoh2C02::step() {
                         prepare_sprite(*m_spr_buf[m_spr_buf_count]);
 
                         ++m_spr_buf_count;
-                    } 
+                    }
                 }
                 assert(m_spr_buf_count >= 0 && m_spr_buf_count <= 8);
 
+                // Use the actual first sprite in sprite ram, not the first sprite in the buffer
                 m_sprite_0.y_pos = m_spr_ram[y_offset];
                 m_sprite_0.index = m_spr_ram[index_offset];
                 m_sprite_0.attr  = m_spr_ram[attr_offset] & attr_mask;
                 m_sprite_0.x_pos = m_spr_ram[x_offset];
+                // Note: Emplace_sprite does not need to be called for this sprite, this only done here
+                //      to fetch necessary color information for sprite 0 hit during rendering phase
                 prepare_sprite(m_sprite_0);
             }
             
@@ -258,8 +272,10 @@ bool Ricoh2C02::sprite_zero_check(int dot) {
     //      the current BG pixel lies within the sprite boundaries though
     if (m_reg_status.sprite_0_hit || dot < x || dot > x + 7)
         return false;
-
     assert(dot - x >= 0 && dot - x <= 7);
+
+    if (m_scanline < y || m_scanline > y + 7)
+        return false;
 
     if (m_sprite_0.prefetch_data[dot - x] != 0) {
         m_reg_status.sprite_0_hit = true;
