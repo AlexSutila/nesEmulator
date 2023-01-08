@@ -492,9 +492,13 @@ void Ricoh2C02::vram_addr1_w(uint8_t value) {
 void Ricoh2C02::vram_addr2_w(uint8_t value) {
 
     if (m_addr_latch.state == m_addr_latch.hiByte) {
+
         m_addr_latch.addr  = (m_addr_latch.addr & 0x00FF) | (value << 8);
         m_addr_latch.state = m_addr_latch.loByte;
-    
+
+        // PPU Internal register hardware quirk
+        m_reg_ctrl1.nt_address = (value & 0x3);
+
     } else /* m_addr_latch.state == loByte */ {
         m_addr_latch.addr  = (m_addr_latch.addr & 0xFF00) | value;
         m_addr_latch.state = m_addr_latch.hiByte;
