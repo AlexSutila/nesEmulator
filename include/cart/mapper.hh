@@ -148,7 +148,7 @@ private:
 
     ntMirrors::nameTableMirrorMode m_mirroring;
     uint8_t m_prg_bank_lo, m_prg_bank_hi;
-    int m_prg_banks; // In banks this time
+    int m_prg_banks, m_chr_banks; // In banks this time
     Cart* m_cart;
 
 public:
@@ -156,8 +156,9 @@ public:
     // I'm being somewhat inconsistent with sz_prg_rom considering how I've
     //     implemented it in other mappers so far. What ever lol. Mapper_0 is
     //     passed as a field to determine how the mirroring is soldered.
-    Mapper_002(Cart* cart_ptr, int nr_prg_banks, uint8_t mapper_0) :
+    Mapper_002(Cart* cart_ptr, int nr_prg_banks, int nr_chr_banks, uint8_t mapper_0) :
         m_prg_banks(nr_prg_banks),
+        m_chr_banks(nr_chr_banks),
         m_cart(cart_ptr) {
 
             // Banking initialization

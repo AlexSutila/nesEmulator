@@ -30,10 +30,22 @@ uint8_t Mapper_002::cpu_RB(uint16_t addr) {
 
 void Mapper_002::ppu_WB(uint16_t addr, uint8_t value) {
 
+    // CHR ROM - treated like ram when nr_chr_banks == 0
+    if (m_chr_banks == 0 && addr >= 0x0000 && addr <= 0x1FFF) {
+        m_cart->get_CHR_ROM()[addr] = value;
+    }
+
 }
 
 uint8_t Mapper_002::ppu_RB(uint16_t addr) {
-    return 0x00;
+
+    uint8_t data = 0x00;
+
+    if (addr >= 0x0000 && addr <= 0x1FFF) {
+        data = m_cart->get_CHR_ROM()[addr];
+    }
+
+    return data;
 }
 
 ntMirrors::nameTableMirrorMode Mapper_002::nt_mirror() {

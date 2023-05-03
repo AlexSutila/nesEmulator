@@ -25,7 +25,14 @@ bool Cart::init_mapper(int mapper_number) {
         case 2: m_mapper = std::make_unique<Mapper_002>(
             this,
             m_cart_header.size_prg_rom,
+            m_cart_header.size_chr_rom,
             m_cart_header.mapper_0 & 0x3);
+
+            // When size_chr_rom is zero, chr_rom is actually replaced with RAM so the vector
+            //     will need to be resized accordingly.
+            if (m_cart_header.size_chr_rom == 0)
+                m_chr_rom.resize(0x2000);
+
             return true;
     }
     
