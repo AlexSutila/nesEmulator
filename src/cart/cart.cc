@@ -22,6 +22,11 @@ bool Cart::init_mapper(int mapper_number) {
             m_cart_header.size_chr_rom * 0x2000,
             m_cart_header.size_prg_ram * 0x2000);
             return true;
+        case 2: m_mapper = std::make_unique<Mapper_002>(
+            this,
+            m_cart_header.size_prg_rom,
+            m_cart_header.mapper_0 & 0x3);
+            return true;
     }
     
     return false;

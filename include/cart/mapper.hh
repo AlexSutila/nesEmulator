@@ -135,3 +135,55 @@ public:
     void rst() override;
 
 };
+
+/* -------------------------------------------------------- */
+/*                                                          */
+/*                        Mapper 002                        */
+/*                                                          */
+/* -------------------------------------------------------- */
+
+class Mapper_002 : public Mapper {
+
+private:
+
+    ntMirrors::nameTableMirrorMode m_mirroring;
+    uint8_t m_prg_bank_lo, m_prg_bank_hi;
+    int m_prg_banks; // In banks this time
+    Cart* m_cart;
+
+public:
+
+    // I'm being somewhat inconsistent with sz_prg_rom considering how I've
+    //     implemented it in other mappers so far. What ever lol. Mapper_0 is
+    //     passed as a field to determine how the mirroring is soldered.
+    Mapper_002(Cart* cart_ptr, int nr_prg_banks, uint8_t mapper_0) :
+        m_prg_banks(nr_prg_banks),
+        m_cart(cart_ptr) {
+
+            // Banking initialization
+            m_prg_bank_lo = 0x00;
+            m_prg_bank_hi = nr_prg_banks - 1;
+
+            // Determine mirroring mode
+            if (mapper_0 == 0b01)
+                m_mirroring = ntMirrors::horizontal;
+            else if (mapper_0 == 0b10)
+                m_mirroring = ntMirrors::vertical;
+        }
+
+    // Mapper access by CPU
+    void cpu_WB(uint16_t addr, uint8_t value) override;
+    uint8_t cpu_RB(uint16_t addr) /* ----- */ override;
+
+    // Mapper access by PPU
+    void ppu_WB(uint16_t addr, uint8_t value) override;
+    uint8_t ppu_RB(uint16_t addr) /* ----- */ override;
+
+    // Return name table mirroring mode
+    ntMirrors::nameTableMirrorMode nt_mirror() override;
+
+    // Reset mapper to initial conditions
+    void rst() override;
+
+};
+
