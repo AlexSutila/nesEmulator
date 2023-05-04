@@ -151,6 +151,7 @@ void Ricoh2C02::step() {
 
             const uint8_t attr_mask = ~0x1C; // Mask to pull unimplemented bits of attr byte low
             const uint8_t y_offset = 0, index_offset = 1, attr_offset = 2, x_offset = 3;
+            int height = m_reg_ctrl1.sprite_size == 0 ? 8 : 16;
 
             if (m_cycle == 257) { // Fetching all data on this cycle for simplicity
 
@@ -164,7 +165,7 @@ void Ricoh2C02::step() {
                 // Fetching all data on this exact cycle for simplicity
                 for (uint16_t cur_sprite_addr = 0; (cur_sprite_addr < 0x100); cur_sprite_addr += 4) {
                     uint8_t x = m_spr_ram[cur_sprite_addr + x_offset], y = m_spr_ram[cur_sprite_addr + y_offset];
-                    if (x + 8 > 0 && x < TV_W && y + 8 > m_scanline && y <= m_scanline /* TODO: Consider variable height sprites */) {
+                    if (x + 8 > 0 && x < TV_W && y + height > m_scanline && y <= m_scanline) {
 
                         // The buffer is full but there are more sprites on this scanline. Stop searching, and set the 
                         //      sprite overflow bit in $2002
@@ -358,17 +359,31 @@ unsigned int Ricoh2C02::fetch_bg_pixel() {
 void Ricoh2C02::prepare_sprite(Sprite& spr) {
 
     const int tileSizePixels = 8, tileSizeBytes = 16;
-    const uint16_t patternTableBase = m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
+    uint16_t patternTableBase = m_reg_ctrl1.sprite_pattabl ? 0x1000 : 0x0000;
+    const int height = m_reg_ctrl1.sprite_size ? 16 : 8;
     const int next_scanline = m_scanline + 1;
 
     // The minus one here is because the nes stores the real y position plus one
     uint8_t offset_y = next_scanline - spr.y_pos - 1;
+    uint8_t spr_index = spr.index;
+
+    // If big sprites are being used, the least significant bit is ignored and used to select the
+    //     pattern table instead. The least significant bit will change based on which of the two
+    //     tiles is currently being rendered.
+    if (m_reg_ctrl1.sprite_size != 0) {
+        patternTableBase = (spr_index & 0x1) != 0 ? 0x1000 : 0x0000;
+        spr_index &= 0xFE;
+        if (offset_y > 7) {
+            spr_index = spr_index + 1;
+            offset_y = offset_y - 8;
+        }
+    }
 
     // Check for vertical flip, flip vertically if bit set
-    if (spr.attr & 0x80) offset_y = 7 - offset_y;
+    if (spr.attr & 0x80) offset_y = (height - 1) - offset_y;
 
     // Fetch sprite pattern data
-    uint16_t tileBaseAddr = patternTableBase + (spr.index * tileSizeBytes); // In pattern memory
+    uint16_t tileBaseAddr = patternTableBase + (spr_index * tileSizeBytes); // In pattern memory
     uint16_t tileDataLo = RB(tileBaseAddr + offset_y + 0), tileDataHi = RB(tileBaseAddr + offset_y + 8);
 
     for (int i = 0; i < tileSizePixels; i++) {
