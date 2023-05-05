@@ -371,11 +371,19 @@ void Ricoh2C02::prepare_sprite(Sprite& spr) {
     //     pattern table instead. The least significant bit will change based on which of the two
     //     tiles is currently being rendered.
     if (m_reg_ctrl1.sprite_size != 0) {
+
         patternTableBase = (spr_index & 0x1) != 0 ? 0x1000 : 0x0000;
         spr_index &= 0xFE;
-        if (offset_y > 7) {
+
+        // Just a dumb hack to get verticle sprite flipping to work for both 8x8 sprites and also
+	//     8x16 sprites.
+        if ((offset_y > 7) && (spr.attr & 0x80) == 0) {
             spr_index = spr_index + 1;
             offset_y = offset_y - 8;
+        }
+        if ((offset_y <= 7) && (spr.attr & 0x80) != 0) {
+            spr_index = spr_index + 1;
+            offset_y = offset_y + 8;
         }
     }
 
