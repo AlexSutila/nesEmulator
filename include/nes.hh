@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <chrono>
 #include "cart/cart.hh"
+#include "gamegenie.hh"
 #include "2A03.hh"
 #include "2C02.hh"
 #include "ctrl.hh"
@@ -11,6 +12,7 @@ struct nes {
 
 private:
 
+    GameGenie game_genie;
     bool m_running;
 
     /* Components and Buslines ---------------------------- */

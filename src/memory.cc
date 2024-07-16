@@ -1,3 +1,4 @@
+#include "gamegenie.hh"
 #include "mirrors.hh"
 #include "memory.hh"
 
@@ -24,6 +25,11 @@ void cpu_bus::connect_ctrl(Controller* ctrl_ptr) {
 
 }
 
+/* Connect components ------------------------------------- */
+
+void cpu_bus::connect_game_genie(GameGenie* gg_ptr) {
+    m_gg = gg_ptr;
+}
 
 /* Connect components ------------------------------------- */
 
@@ -103,6 +109,11 @@ void cpu_bus::WB(uint16_t addr, uint8_t value) {
 uint8_t cpu_bus::RB(uint16_t addr) {
 
     using namespace AddressMirrors::CpuBus;
+    const auto [gg_hijack, gg_byte] = m_gg->RB(addr);
+
+    /* Game Genie hijack */
+    if (gg_hijack)
+        return gg_byte;
 
     // RAM - Address Range 0x0000 - 0x2000
     /**/ if (addr >= 0x0000 && addr <= 0x1FFF) {

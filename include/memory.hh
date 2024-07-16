@@ -5,6 +5,7 @@
 #include "2C02.hh"
 #include "ctrl.hh"
 #include "cart/cart.hh"
+#include "gamegenie.hh"
 
 struct Ricoh2A03;
 struct Ricoh2C02;
@@ -32,6 +33,9 @@ private:
     // Controller pointer
     Controller* m_ctrl;
 
+    // Game Genie
+    GameGenie* m_gg;
+
 public:
 
     cpu_bus();
@@ -46,6 +50,9 @@ public:
     void connect_cpu(Ricoh2A03* cpu_ptr);
     void connect_ppu(Ricoh2C02* ppu_ptr);
     void connect_cart(Cart* cart_ptr);
+
+    // Connect Game Genie
+    void connect_game_genie(GameGenie* gg_ptr);
 
     // Memory access by CPU
     void WB(uint16_t addr, uint8_t value);

@@ -11,6 +11,12 @@ nes::nes() {
     const int winScale = 3;  // Feel free to ajudst this to your liking
     m_running = true;
 
+    /* Game Genie Codes (OPTIONAL) ------------------------ */
+
+    /*game_genie.add_code("OZTLLX");*/
+    /*game_genie.add_code("AATLGZ");*/
+    /*game_genie.add_code("SZLIVO");*/
+
     /* Make all necessary connections between cartridge components and buslines */
 
     // Connect controller to busline
@@ -27,13 +33,15 @@ nes::nes() {
     m_ppu.connect_bus(&m_cpu_bus);
     m_ppu.connect_bus(&m_ppu_bus);
 
+    // Connecting Game Genie to CPU bus
+    m_cpu_bus.connect_game_genie(&game_genie);
+
     /* Initialize SDL2 related stuff for rendering -------- */
 
     m_window   = SDL_CreateWindow(name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, TV_W * winScale, TV_H * winScale, SDL_WINDOW_RESIZABLE);
     m_renderer = SDL_CreateRenderer(m_window, -1, 0);
     m_texture  = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, TV_W, TV_H);
     m_time     = std::chrono::high_resolution_clock::now();
-
 }
 
 bool nes::load_cart(const std::string& rom_path) {
