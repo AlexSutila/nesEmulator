@@ -1,6 +1,8 @@
 #pragma once
 #include <SDL2/SDL.h>
 #include <chrono>
+#include <string>
+#include <vector>
 #include "cart/cart.hh"
 #include "gamegenie.hh"
 #include "2A03.hh"
@@ -12,10 +14,12 @@ struct nes {
 
 private:
 
-    GameGenie game_genie;
     bool m_running;
 
     /* Components and Buslines ---------------------------- */
+
+    // For cheat codes >:)
+    GameGenie game_genie;
 
     // Both buslines
     cpu_bus m_cpu_bus;
@@ -43,6 +47,7 @@ public:
 
     nes();
 
+    void add_cheat_code(const std::string& code);
     bool load_cart(const std::string& rom_path);
     void event_poll();
     void run();
