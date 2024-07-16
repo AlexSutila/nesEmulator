@@ -83,7 +83,7 @@ void cpu_bus::WB(uint16_t addr, uint8_t value) {
     using namespace AddressMirrors::CpuBus;
 
     // RAM - Address Range 0x0000 - 0x2000
-    /**/ if (addr >= 0x0000 && addr <= 0x1FFF) {
+    if (addr >= 0x0000 && addr <= 0x1FFF) {
         m_ram[mirror_ram(addr)] = value;
     } 
     
@@ -109,15 +109,11 @@ void cpu_bus::WB(uint16_t addr, uint8_t value) {
 uint8_t cpu_bus::RB(uint16_t addr) {
 
     using namespace AddressMirrors::CpuBus;
-    const auto [gg_hijack, gg_byte] = m_gg->RB(addr);
-
-    /* Game Genie hijack */
-    if (gg_hijack)
-        return gg_byte;
+    std::uint8_t data = 0;
 
     // RAM - Address Range 0x0000 - 0x2000
-    /**/ if (addr >= 0x0000 && addr <= 0x1FFF) {
-        return m_ram[mirror_ram(addr)];
+    if (addr >= 0x0000 && addr <= 0x1FFF) {
+        data = m_ram[mirror_ram(addr)];
     } 
     
     // IO - Address Range 0x2000 - 0x4020
@@ -129,16 +125,19 @@ uint8_t cpu_bus::RB(uint16_t addr) {
         // Pull the function from the hash map and if there is a mapping 
         //      jump to the io register read function
         uint8_t(*read_function)(cpu_bus&) = m_io_reads[reduced_addr];
-        if (read_function != nullptr) return (*read_function)(*this);
+        if (read_function != nullptr) data = (*read_function)(*this);
 
     } 
     
     // Cart - Address Range 0x4020 - 0xFFFF
     else if (addr >= 0x4020 && addr <= 0xFFFF) {
-        return m_cart->cpu_RB(addr);
+        data = m_cart->cpu_RB(addr);
     }
 
-    return 0x00;
+    /* Here, the game-genie has the potential to hijack the byte read. If
+     * the byte is to be hijacked, data is updated otherwise it remains the
+     * same as it would normally. */
+    return m_gg->RB(addr, data);
 }
 
 /* External signals --------------------------------------- */
@@ -209,7 +208,7 @@ void ppu_bus::WB(uint16_t addr, uint8_t value) {
     addr = mirror_mirrors(addr);
 
     // Pattern Tables - Address Range 0x0000 - 0x2000
-    /**/ if (addr >= 0x0000 && addr <= 0x1FFF) {
+    if (addr >= 0x0000 && addr <= 0x1FFF) {
         m_cart->ppu_WB(addr, value);
     }
 
@@ -277,7 +276,7 @@ uint8_t ppu_bus::RB(uint16_t addr) {
     addr = mirror_mirrors(addr);
 
     // Pattern Tables - Address Range 0x0000 - 0x2000
-    /**/ if (addr >= 0x0000 && addr <= 0x1FFF) {
+    if (addr >= 0x0000 && addr <= 0x1FFF) {
         return m_cart->ppu_RB(addr);
     }
 

@@ -10,8 +10,8 @@
     X("right",  SDL_SCANCODE_D,         7) \
     X("start",  SDL_SCANCODE_ESCAPE,    2) \
     X("select", SDL_SCANCODE_BACKSPACE, 3) \
-    X("A",      SDL_SCANCODE_RIGHT,     0) \
-    X("B",      SDL_SCANCODE_LEFT,      1)
+    X("A",      SDL_SCANCODE_L,         0) \
+    X("B",      SDL_SCANCODE_J,         1)
 
 Controller::Controller() {
     for (bool& t : m_btnStates) 
