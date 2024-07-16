@@ -1,8 +1,6 @@
 #include <assert.h>
 #include "cart/mapper.hh"
 
-#include <iostream>
-    
 void Mapper_000::cpu_WB(uint16_t addr, uint8_t value) {
 
 }

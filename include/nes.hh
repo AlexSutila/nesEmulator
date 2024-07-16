@@ -2,7 +2,6 @@
 #include <SDL2/SDL.h>
 #include <chrono>
 #include <string>
-#include <vector>
 #include "cart/cart.hh"
 #include "gamegenie.hh"
 #include "2A03.hh"

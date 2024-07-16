@@ -1,6 +1,5 @@
 #include "cart/cart.hh"
 #include <iostream>
-#include <iterator>
 #include <fstream>
 
 // Initialize the mapper pointer with a pointer to the cartridges respective mapper. Will

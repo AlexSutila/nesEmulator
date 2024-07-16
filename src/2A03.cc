@@ -120,7 +120,7 @@ uint8_t Ricoh2A03::ins() {
     uint8_t t8 = 0, extra_cycles = 0;
 
     // Do addressing mode
-    /**/ if constexpr (a_m == IMP) {
+    if constexpr (a_m == IMP) {
         t8 = m_reg_a;
     }
     else if constexpr (a_m == IMM) {
@@ -184,7 +184,7 @@ uint8_t Ricoh2A03::ins() {
     }
 
     // Do operation
-    /**/ if constexpr (op == ADC) {
+    if constexpr (op == ADC) {
 
         if constexpr (a_m != IMP) t8 = RB(addr_abs);
         t16 = (uint16_t)m_reg_a + (uint16_t)t8 + (uint16_t)m_flag_c;

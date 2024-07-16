@@ -1,6 +1,5 @@
 #include <assert.h>
 #include "cart/mapper.hh"
-#include <iostream>
 
 void Mapper_001::cpu_WB(uint16_t addr, uint8_t value) {
 
@@ -32,7 +31,7 @@ void Mapper_001::cpu_WB(uint16_t addr, uint8_t value) {
     else if (m_shift_register.value & 0x01) {
 
         // Control Register
-        /**/ if (addr >= 0x8000 && addr <= 0x9FFF) {
+        if (addr >= 0x8000 && addr <= 0x9FFF) {
             m_reg_ctrl.raw = (m_shift_register.value >> 1) & 0x1F;
         }
 
@@ -105,7 +104,7 @@ uint8_t Mapper_001::cpu_RB(uint16_t addr) {
 
         else {
             
-            /**/ if (addr >= 0x8000 && addr <= 0xBFFF) {
+            if (addr >= 0x8000 && addr <= 0xBFFF) {
                 return m_cart->get_PRG_ROM()[(addr & 0x3FFF) + (0x4000 * m_prg_bank0)];
             }
 
