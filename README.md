@@ -46,9 +46,20 @@ There is currently only support for a regular keyboard, but talk about potential
 | A | left |
 | S | down |
 | D | right |
-| start | backspace |
-| select | escape |
-| left arrow | A |
-| right arrow | B |
+| start | escape |
+| select | backspace |
+| L | A |
+| J | B |
 
-There is also talk about potentially adding support for a 'turbo' like feature, similar to what Mesen has for all the cheaters out there >:)
+## Cheating
+Game genie codes (both 6-character and 8-character) are supported, and multiple can be provided via commandline arguments. As an example, the link below shows cheat codes for mega man all of which can be provided at once:
+- https://www.gamegenie.com/cheats/gamegenie/nes/mega_man.html
+
+Running `./nes ~/Documents/Roms/nes/mm.nes OZSKPZVK SZKZGZSA AVVXLPSZ` will boot mega man with the following cheats:
+- Infinite lives
+- Infinite energy
+- No harm from any enemies, except super villains
+
+Same pattern follows for other ROMs supported, game genie codes for any game are pretty easy to find online.
+
+There is also talk about potentially adding support for a 'turbo' like feature, similar to what Mesen has.
